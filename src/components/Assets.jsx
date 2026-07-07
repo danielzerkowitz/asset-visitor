@@ -1,5 +1,5 @@
 import { area } from '../units.js'
-import { aggAsset, buildingCount } from '../lib.js'
+import { aggAsset, buildingCount, isActive } from '../lib.js'
 
 export default function Assets({ assets, leads, openAsset, onNewAsset }) {
   const totalSubs = assets.reduce((n, a) => n + a.subs.length, 0)
@@ -22,7 +22,7 @@ export default function Assets({ assets, leads, openAsset, onNewAsset }) {
       <div className="asset-grid">
         {assets.map((a) => {
           const { t, o, v } = aggAsset(a)
-          const nLeads = leads.filter((l) => l.assetId === a.id && l.stage !== 'rented').length
+          const nLeads = leads.filter((l) => l.assetId === a.id && isActive(l)).length
           const pct = Math.round(o * 100)
           return (
             <div key={a.id} className="asset-card" onClick={() => openAsset(a.id)}>

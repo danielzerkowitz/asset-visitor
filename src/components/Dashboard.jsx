@@ -1,5 +1,5 @@
 import { area, cv, fmt, unit } from '../units.js'
-import { aggAsset, buildingCount, findAsset, leadInScope, scopeSubs, whereLabel } from '../lib.js'
+import { aggAsset, buildingCount, findAsset, fmtDate, isActive, lastVisit, leadInScope, scopeSubs, visitCount, whereLabel } from '../lib.js'
 import { KpiCard, Select } from './ui.jsx'
 
 function todayLabel() {
@@ -25,8 +25,8 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
   const occ = totSqm ? scope.reduce((n, x) => n + x.s.sqm * x.s.occ, 0) / totSqm : 0
   const vac = scope.reduce((n, x) => n + x.s.sqm * (1 - x.s.occ), 0)
   const leadsScoped = leads.filter((l) => leadInScope(l, fAsset, fSub))
-  const activeScoped = leadsScoped.filter((l) => l.stage !== 'rented')
-  const visitLeads = leadsScoped.filter((l) => l.stage === 'visit')
+  const activeScoped = leadsScoped.filter(isActive)
+  const visitsDone = activeScoped.reduce((n, l) => n + visitCount(l), 0)
 
   const kpis = [
     { label: 'OCCUPANCY', value: String(Math.round(occ * 100)), unit: '%', note: 'weighted by area' },
@@ -36,8 +36,8 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
       unit: unit(),
       note: `${scope.length} ${scope.length === 1 ? 'building' : 'buildings'} in scope`,
     },
-    { label: 'ACTIVE LEADS', value: String(activeScoped.length), unit: '', note: 'excluding rented' },
-    { label: 'VISITS SCHEDULED', value: String(visitLeads.length), unit: '', note: 'this week' },
+    { label: 'ACTIVE LEADS', value: String(activeScoped.length), unit: '', note: 'excluding signed & out' },
+    { label: 'VISITS DONE', value: String(visitsDone), unit: '', note: 'across active leads' },
   ]
 
   let occTitle, occColLabel, occRows
@@ -72,12 +72,16 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
       }))
   }
 
-  const visits = visitLeads.map((l) => ({
-    id: l.id,
-    company: l.company,
-    where: whereLabel(assets, l),
-    when: l.when || 'TBD',
-  }))
+  const visits = activeScoped
+    .filter((l) => lastVisit(l))
+    .sort((a, b) => (lastVisit(b) > lastVisit(a) ? 1 : -1))
+    .slice(0, 6)
+    .map((l) => ({
+      id: l.id,
+      company: l.company,
+      where: whereLabel(assets, l),
+      when: l.when || fmtDate(lastVisit(l)),
+    }))
 
   return (
     <div className="page page--dash">
@@ -150,7 +154,7 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="card card--clip">
             <div className="card-head" style={{ paddingBottom: 9 }}>
-              <span className="card-title">Upcoming visits</span>
+              <span className="card-title">Recent visits</span>
               <span className="count-chip">{visits.length}</span>
             </div>
             {visits.map((v) => (
@@ -178,7 +182,7 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
             ))}
             {visits.length === 0 && (
               <div style={{ padding: '14px 16px', fontSize: 12, color: 'var(--faint)', borderTop: '1px solid var(--bd-row)' }}>
-                No visits scheduled in this scope.
+                No visits in this scope yet.
               </div>
             )}
           </div>

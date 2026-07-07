@@ -1,12 +1,13 @@
 import { Avatar } from './ui.jsx'
+import { isActive, visitCount } from '../lib.js'
 
 export default function Brokers({ brokers, assets, leads, onAddBroker, onAddContact }) {
   const statsFor = (contactId) => {
     const mine = leads.filter((l) => l.brokerContact === contactId)
     return {
-      active: mine.filter((l) => l.stage !== 'rented').length,
-      visits: mine.filter((l) => l.stage === 'visit').length,
-      rented: mine.filter((l) => l.stage === 'rented').length,
+      active: mine.filter(isActive).length,
+      visits: mine.reduce((n, l) => n + visitCount(l), 0),
+      signed: mine.filter((l) => l.stage === 'signed').length,
     }
   }
 
@@ -44,8 +45,8 @@ export default function Brokers({ brokers, assets, leads, onAddBroker, onAddCont
             <div className="grid-row agent-cols thead-row">
               <span className="mlabel">CONTACT</span>
               <span className="mlabel" style={{ textAlign: 'right' }}>ACTIVE LEADS</span>
-              <span className="mlabel" style={{ textAlign: 'right' }}>VISITS SCHEDULED</span>
-              <span className="mlabel" style={{ textAlign: 'right' }}>RENTED</span>
+              <span className="mlabel" style={{ textAlign: 'right' }}>VISITS DONE</span>
+              <span className="mlabel" style={{ textAlign: 'right' }}>SIGNED</span>
             </div>
             {b.contacts.map((c) => {
               const s = statsFor(c.id)
@@ -62,7 +63,7 @@ export default function Brokers({ brokers, assets, leads, onAddBroker, onAddCont
                     {s.visits}
                   </span>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, color: '#4C8355', textAlign: 'right' }}>
-                    {s.rented}
+                    {s.signed}
                   </span>
                 </div>
               )

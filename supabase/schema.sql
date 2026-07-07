@@ -38,19 +38,41 @@ create table if not exists public.stages (
 );
 
 create table if not exists public.leads (
-  id             text primary key,
-  company        text not null,
-  contact        text not null default '',
-  type           text not null default 'Office',
-  sqm            double precision not null default 0,
-  asset_id       text not null,
-  sub_id         text,
-  stage          text not null,
-  broker_contact text not null default '',
-  next_step      text not null default '',
-  when_label     text,
-  position       integer not null default 0
+  id              text primary key,
+  company         text not null,
+  contact         text not null default '',
+  type            text not null default 'Office',
+  sqm             double precision not null default 0,
+  asset_id        text not null,
+  sub_id          text,
+  stage           text not null,
+  broker          text,                          -- broker firm id
+  broker_contact  text,                          -- broker contact id
+  tenant_kind     text not null default 'new',   -- 'new' | 'current'
+  deal_type       text,                          -- Renewal / Extension / Reduction
+  activity        text,                          -- tenant sector (Nacebel)
+  timing          text,
+  intro_date      text,                          -- milestone dates, 'YYYY-MM-DD'
+  visits          jsonb not null default '[]'::jsonb,
+  last_proposal   text,
+  proposal_agreed text,
+  comments        text,
+  next_step       text not null default '',
+  when_label      text,
+  position        integer not null default 0
 );
+-- Upgrade for databases created before the milestone fields existed:
+alter table public.leads add column if not exists broker text;
+alter table public.leads add column if not exists tenant_kind text not null default 'new';
+alter table public.leads add column if not exists deal_type text;
+alter table public.leads add column if not exists activity text;
+alter table public.leads add column if not exists timing text;
+alter table public.leads add column if not exists intro_date text;
+alter table public.leads add column if not exists visits jsonb not null default '[]'::jsonb;
+alter table public.leads add column if not exists last_proposal text;
+alter table public.leads add column if not exists proposal_agreed text;
+alter table public.leads add column if not exists comments text;
+alter table public.leads alter column broker_contact drop not null;
 
 -- Demo-grade access: the app talks to the DB directly with the public anon
 -- key, so anon gets full CRUD. Replace these policies with real auth-based

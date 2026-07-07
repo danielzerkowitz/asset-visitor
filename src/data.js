@@ -19,13 +19,16 @@ export const assetsSeed = [
     { id: 'three', name: 'Campus Three', short: 'Three', sqm: 4800, occ: 0.71, units: 12, vacant: 4, rent: 182 } ] },
 ]
 
+// Milestone-derived stages: a lead sits on the furthest milestone reached
+// (intro date → Introduced, any visit → Visited, proposal sent → Proposal, …).
 export const stages = [
   { id: 'new', label: 'New', dot: '#948A7B' },
-  { id: 'contacted', label: 'Contacted', dot: '#B08327' },
-  { id: 'visit', label: 'Visit scheduled', dot: '#C05F2E' },
-  { id: 'visited', label: 'Visit done', dot: '#9D4A26' },
-  { id: 'nego', label: 'Negotiation', dot: '#74803B' },
-  { id: 'rented', label: 'Rented', dot: '#4C8355' },
+  { id: 'intro', label: 'Introduced', dot: '#B08327' },
+  { id: 'visited', label: 'Visited', dot: '#C05F2E' },
+  { id: 'proposal', label: 'Proposal', dot: '#9D4A26' },
+  { id: 'agreed', label: 'Agreed', dot: '#74803B' },
+  { id: 'signed', label: 'Signed', dot: '#4C8355' },
+  { id: 'out', label: 'Out', dot: '#8A8578' },
 ]
 
 // Brokers are external brokerage companies; contacts are the actual people
@@ -46,18 +49,18 @@ export const managersSeed = [
 ]
 
 export const leadsSeed = [
-  { id: 'l1', company: 'Vectis Group', contact: 'Anna Maes', type: 'Office', sqm: 450, assetId: 'meridian', subId: 'b', stage: 'visit', brokerContact: 'SH', next: 'Visit · Tue 10:30', when: 'Tue 10:30' },
-  { id: 'l2', company: 'Brontide Analytics', contact: 'Tom Peeters', type: 'Office', sqm: 1200, assetId: 'solvay', subId: 'three', stage: 'nego', brokerContact: 'MD', next: 'Send counter-proposal' },
-  { id: 'l3', company: 'Cargolux BeNe', contact: 'Ines Willems', type: 'Industrial', sqm: 5500, assetId: 'northgate', subId: 'w3', stage: 'visited', brokerContact: 'SH', next: 'Follow-up call Fri' },
-  { id: 'l4', company: 'Aldera Retail', contact: 'Sofie Claes', type: 'Retail', sqm: 320, assetId: 'arcade', subId: 's', stage: 'contacted', brokerContact: 'JR', next: 'Awaiting floor plans' },
-  { id: 'l5', company: 'Nimbus Legal', contact: 'Karel Joos', type: 'Office', sqm: 280, assetId: 'cortenberg', subId: 'main', stage: 'new', brokerContact: 'MD', next: 'Qualify requirements' },
-  { id: 'l6', company: 'Ostara Foods', contact: 'Griet Lambert', type: 'Industrial', sqm: 3200, assetId: 'northgate', subId: 'w2', stage: 'visit', brokerContact: 'JR', next: 'Visit · Thu 14:00', when: 'Thu 14:00' },
-  { id: 'l7', company: 'Helix BioWorks', contact: 'David Nys', type: 'Office', sqm: 900, assetId: 'meridian', subId: 'd', stage: 'nego', brokerContact: 'SH', next: 'Legal review of terms' },
-  { id: 'l8', company: 'Trellis & Co', contact: 'Emma Verlinden', type: 'Office', sqm: 600, assetId: 'solvay', subId: 'two', stage: 'visit', brokerContact: 'MD', next: 'Visit · Wed 09:00', when: 'Wed 09:00' },
-  { id: 'l9', company: 'Kordo Logistics', contact: 'Bram Ceulemans', type: 'Industrial', sqm: 8000, assetId: 'northgate', subId: 'w3', stage: 'contacted', brokerContact: 'SH', next: 'Qualify budget' },
-  { id: 'l10', company: 'Maru Coffee', contact: 'Lisa Van Damme', type: 'Retail', sqm: 140, assetId: 'arcade', subId: 'n', stage: 'rented', brokerContact: 'JR', next: 'Signed 12 Jun' },
-  { id: 'l11', company: 'Quill Publishing', contact: 'Peter Smet', type: 'Office', sqm: 380, assetId: 'meridian', subId: 'b', stage: 'new', brokerContact: 'JR', next: 'First call to book' },
-  { id: 'l12', company: 'Novum Fit', contact: 'Hanne De Wit', type: 'Retail', sqm: 450, assetId: 'arcade', subId: 's', stage: 'visited', brokerContact: 'MD', next: 'Proposal draft' },
-  { id: 'l13', company: 'Atrix Consulting', contact: 'Wouter Blomme', type: 'Office', sqm: 520, assetId: 'solvay', subId: 'two', stage: 'rented', brokerContact: 'SH', next: 'Signed 28 May' },
-  { id: 'l14', company: 'Ferro Tools', contact: 'Jan Mertens', type: 'Industrial', sqm: 2600, assetId: 'northgate', subId: 'w2', stage: 'new', brokerContact: 'MD', next: 'Qualify requirements' },
+  { id: 'l1', company: 'Vectis Group', contact: 'Anna Maes', type: 'Office', sqm: 450, assetId: 'meridian', subId: 'b', stage: 'visited', broker: 'halewijn', brokerContact: 'SH', next: 'Visit · Tue 10:30', when: 'Tue 10:30' },
+  { id: 'l2', company: 'Brontide Analytics', contact: 'Tom Peeters', type: 'Office', sqm: 1200, assetId: 'solvay', subId: 'three', stage: 'proposal', broker: 'quadrant', brokerContact: 'MD', next: 'Send counter-proposal' },
+  { id: 'l3', company: 'Cargolux BeNe', contact: 'Ines Willems', type: 'Industrial', sqm: 5500, assetId: 'northgate', subId: 'w3', stage: 'visited', broker: 'halewijn', brokerContact: 'SH', next: 'Follow-up call Fri' },
+  { id: 'l4', company: 'Aldera Retail', contact: 'Sofie Claes', type: 'Retail', sqm: 320, assetId: 'arcade', subId: 's', stage: 'intro', broker: 'vermeer', brokerContact: 'JR', next: 'Awaiting floor plans' },
+  { id: 'l5', company: 'Nimbus Legal', contact: 'Karel Joos', type: 'Office', sqm: 280, assetId: 'cortenberg', subId: 'main', stage: 'new', broker: 'quadrant', brokerContact: 'MD', next: 'Qualify requirements' },
+  { id: 'l6', company: 'Ostara Foods', contact: 'Griet Lambert', type: 'Industrial', sqm: 3200, assetId: 'northgate', subId: 'w2', stage: 'visited', broker: 'vermeer', brokerContact: 'JR', next: 'Visit · Thu 14:00', when: 'Thu 14:00' },
+  { id: 'l7', company: 'Helix BioWorks', contact: 'David Nys', type: 'Office', sqm: 900, assetId: 'meridian', subId: 'd', stage: 'proposal', broker: 'halewijn', brokerContact: 'SH', next: 'Legal review of terms' },
+  { id: 'l8', company: 'Trellis & Co', contact: 'Emma Verlinden', type: 'Office', sqm: 600, assetId: 'solvay', subId: 'two', stage: 'visited', broker: 'quadrant', brokerContact: 'MD', next: 'Visit · Wed 09:00', when: 'Wed 09:00' },
+  { id: 'l9', company: 'Kordo Logistics', contact: 'Bram Ceulemans', type: 'Industrial', sqm: 8000, assetId: 'northgate', subId: 'w3', stage: 'intro', broker: 'halewijn', brokerContact: 'SH', next: 'Qualify budget' },
+  { id: 'l10', company: 'Maru Coffee', contact: 'Lisa Van Damme', type: 'Retail', sqm: 140, assetId: 'arcade', subId: 'n', stage: 'signed', broker: 'vermeer', brokerContact: 'JR', next: 'Signed 12 Jun' },
+  { id: 'l11', company: 'Quill Publishing', contact: 'Peter Smet', type: 'Office', sqm: 380, assetId: 'meridian', subId: 'b', stage: 'new', broker: 'vermeer', brokerContact: 'JR', next: 'First call to book' },
+  { id: 'l12', company: 'Novum Fit', contact: 'Hanne De Wit', type: 'Retail', sqm: 450, assetId: 'arcade', subId: 's', stage: 'visited', broker: 'quadrant', brokerContact: 'MD', next: 'Proposal draft' },
+  { id: 'l13', company: 'Atrix Consulting', contact: 'Wouter Blomme', type: 'Office', sqm: 520, assetId: 'solvay', subId: 'two', stage: 'signed', broker: 'halewijn', brokerContact: 'SH', next: 'Signed 28 May' },
+  { id: 'l14', company: 'Ferro Tools', contact: 'Jan Mertens', type: 'Industrial', sqm: 2600, assetId: 'northgate', subId: 'w2', stage: 'new', broker: 'quadrant', brokerContact: 'MD', next: 'Qualify requirements' },
 ]

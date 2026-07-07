@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { fromIn, rentIn } from './units.js'
-import { findAsset, initialsOf, shortName } from './lib.js'
+import { findAsset, initialsOf, isActive, shortName } from './lib.js'
 import useStore from './useStore.js'
 import Sidebar from './components/Sidebar.jsx'
 import Dashboard from './components/Dashboard.jsx'
@@ -86,6 +86,7 @@ export default function App() {
 
   const submitLead = (form) => {
     const first = stages[0]
+    const firm = brokers.find((b) => b.contacts.some((c) => c.id === form.brokerContact))
     const lead = {
       id: `l${Date.now()}`,
       company: form.company.trim(),
@@ -95,7 +96,9 @@ export default function App() {
       assetId: form.asset,
       subId: form.sub || null,
       stage: first.id,
+      broker: firm?.id ?? null,
       brokerContact: form.brokerContact,
+      visits: [],
       next: 'First call to book',
     }
     setLeads((ls) => [lead, ...ls])
@@ -199,7 +202,7 @@ export default function App() {
 
   const counts = {
     assets: assets.length,
-    active: leads.filter((l) => l.stage !== 'rented').length,
+    active: leads.filter(isActive).length,
     brokers: brokers.length,
     managers: managers.length,
   }

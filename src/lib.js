@@ -26,6 +26,27 @@ export function whereLabel(assets, lead) {
   return `${a.short} · ${s.short}`
 }
 
+// A lead is active while the deal is still in play — not signed, not out.
+const INACTIVE_STAGES = ['signed', 'out']
+export const isActive = (l) => !INACTIVE_STAGES.includes(l.stage)
+
+export function lastVisit(l) {
+  const v = l.visits || []
+  return v.length ? v[v.length - 1] : null
+}
+
+export function visitCount(l) {
+  return (l.visits || []).length
+}
+
+// 'YYYY-MM-DD' → '22 Jan 24'
+export function fmtDate(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
+}
+
 export function brokerName(brokers, id) {
   const b = brokers.find((x) => x.id === id)
   return b ? b.name : null

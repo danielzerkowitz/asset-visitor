@@ -1,5 +1,5 @@
 import { area, cv, fmt, rentFmt, unit } from '../units.js'
-import { aggAsset, brokerName, buildingCount, contactInit, managerName } from '../lib.js'
+import { aggAsset, brokerName, buildingCount, contactInit, isActive, managerName } from '../lib.js'
 import { Avatar, KpiCard } from './ui.jsx'
 
 export default function AssetDetail({ asset, leads, brokers, managers, stages, goAssets, onAddLead, onAddBuilding }) {
@@ -12,7 +12,7 @@ export default function AssetDetail({ asset, leads, brokers, managers, stages, g
     { label: 'TOTAL AREA', value: fmt(cv(t)), unit: unit(), note: `${asset.subs.reduce((n, s) => n + s.units, 0)} units` },
     { label: 'OCCUPANCY', value: String(Math.round(o * 100)), unit: '%', note: 'weighted by area' },
     { label: 'VACANT AREA', value: fmt(cv(v)), unit: unit(), note: `${asset.subs.reduce((n, s) => n + s.vacant, 0)} vacant units` },
-    { label: 'ACTIVE LEADS', value: String(aLeads.filter((l) => l.stage !== 'rented').length), unit: '', note: 'excluding rented' },
+    { label: 'ACTIVE LEADS', value: String(aLeads.filter(isActive).length), unit: '', note: 'excluding signed & out' },
   ]
 
   return (
@@ -53,7 +53,7 @@ export default function AssetDetail({ asset, leads, brokers, managers, stages, g
         </div>
         <div className="subs-grid">
           {asset.subs.map((s) => {
-            const n = leads.filter((l) => l.assetId === asset.id && l.subId === s.id && l.stage !== 'rented').length
+            const n = leads.filter((l) => l.assetId === asset.id && l.subId === s.id && isActive(l)).length
             const pct = Math.round(s.occ * 100)
             return (
               <div key={s.id} className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>

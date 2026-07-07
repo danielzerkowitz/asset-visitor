@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { area } from '../units.js'
-import { contactInit, whereLabel } from '../lib.js'
+import { contactInit, isActive, whereLabel } from '../lib.js'
 import { Avatar, Select } from './ui.jsx'
 
 export default function Pipeline({ assets, leads, brokers, stages, pAsset, setPAsset, openAsset, moveLead, onAddStage, onRenameStage, onRemoveStage }) {
@@ -27,7 +27,7 @@ export default function Pipeline({ assets, leads, brokers, stages, pAsset, setPA
 
   const assetOptions = [{ id: 'all', label: 'All assets' }, ...assets.map((a) => ({ id: a.id, label: a.name }))]
   const pLeads = leads.filter((l) => pAsset === 'all' || l.assetId === pAsset)
-  const pActive = pLeads.filter((l) => l.stage !== 'rented').length
+  const pActive = pLeads.filter(isActive).length
 
   const drop = (stageId) => (e) => {
     e.preventDefault()

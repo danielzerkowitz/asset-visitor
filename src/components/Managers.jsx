@@ -1,3 +1,5 @@
+import { isActive } from '../lib.js'
+
 export default function Managers({ managers, assets, leads, onAdd }) {
   return (
     <div className="page page--narrow">
@@ -19,7 +21,7 @@ export default function Managers({ managers, assets, leads, onAdd }) {
         </div>
         {managers.map((m) => {
           const ownedIds = assets.filter((a) => a.manager === m.id).map((a) => a.id)
-          const active = leads.filter((l) => ownedIds.includes(l.assetId) && l.stage !== 'rented').length
+          const active = leads.filter((l) => ownedIds.includes(l.assetId) && isActive(l)).length
           return (
             <div key={m.id} className="grid-row mgr-cols people-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
