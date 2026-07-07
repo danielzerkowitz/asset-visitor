@@ -295,6 +295,8 @@ select, input, button { font-family: inherit; }
 
 .dlead-cols { grid-template-columns: 1.25fr 130px 110px 150px 1fr 30px; gap: 12px; }
 .dlead-row { padding: 11px 16px; border-top: 1px solid var(--bd-row); }
+.dlead-row--click { cursor: pointer; }
+.dlead-row--click:hover { background: #FAF8F3; }
 
 .mono-cell { font-family: var(--mono); font-size: 12px; color: var(--ink-3); text-align: right; white-space: nowrap; }
 

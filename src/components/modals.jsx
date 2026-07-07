@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { sizeLabel } from '../units.js'
+import { cv, sizeLabel } from '../units.js'
 import { findAsset } from '../lib.js'
 import { Field, Modal, Select } from './ui.jsx'
 
@@ -9,12 +9,22 @@ const TYPE_OPTIONS = [
   { id: 'Industrial', label: 'Industrial' },
 ]
 
-export function LeadModal({ assets, brokers, firstStageLabel, initialAssetId, onClose, onSubmit }) {
+export function LeadModal({ assets, brokers, firstStageLabel, initialAssetId, lead, onClose, onSubmit, onDelete }) {
+  const editing = !!lead
   const firstContact = brokers.flatMap((b) => b.contacts)[0]
-  const [form, setForm] = useState({
-    company: '', contact: '', type: 'Office', sqm: '',
-    asset: initialAssetId || '', sub: '', brokerContact: firstContact?.id ?? '',
-  })
+  const [form, setForm] = useState(() =>
+    editing
+      ? {
+          company: lead.company, contact: lead.contact || '', type: lead.type,
+          sqm: lead.sqm ? String(Math.round(cv(lead.sqm))) : '',
+          asset: lead.assetId, sub: lead.subId || '',
+          brokerContact: lead.brokerContact || '', next: lead.next || '',
+        }
+      : {
+          company: '', contact: '', type: 'Office', sqm: '',
+          asset: initialAssetId || '', sub: '', brokerContact: firstContact?.id ?? '', next: '',
+        }
+  )
   const set = (key) => (e) => {
     const v = e.target.value
     setForm((f) => (key === 'asset' ? { ...f, asset: v, sub: '' } : { ...f, [key]: v }))
@@ -29,19 +39,27 @@ export function LeadModal({ assets, brokers, firstStageLabel, initialAssetId, on
       : [{ id: '', label: 'Whole building' }]
     : [{ id: '', label: 'Select an asset first' }]
   const subDisabled = !mAsset || mMulti.length === 0
-  const canSubmit = form.company.trim() && form.contact.trim() && form.asset && Number(form.sqm) > 0
+  // Imported leads may lack a contact person or size — don't block saving them.
+  const canSubmit = editing
+    ? !!(form.company.trim() && form.asset)
+    : !!(form.company.trim() && form.contact.trim() && form.asset && Number(form.sqm) > 0)
 
   return (
     <Modal
-      title="New lead"
-      sub={`Starts in the “${firstStageLabel}” stage of the pipeline`}
+      title={editing ? 'Edit lead' : 'New lead'}
+      sub={editing ? `Deal with ${lead.company}` : `Starts in the “${firstStageLabel}” stage of the pipeline`}
       width={530}
       onClose={onClose}
       footer={
         <>
+          {editing && (
+            <button className="btn-danger" style={{ marginRight: 'auto' }} onClick={() => onDelete()}>
+              Delete lead
+            </button>
+          )}
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
           <button className="btn-primary" disabled={!canSubmit} onClick={() => canSubmit && onSubmit(form)}>
-            Add lead
+            {editing ? 'Save' : 'Add lead'}
           </button>
         </>
       }
@@ -69,11 +87,22 @@ export function LeadModal({ assets, brokers, firstStageLabel, initialAssetId, on
           <Select
             value={form.brokerContact}
             onChange={set('brokerContact')}
+            options={[{ id: '', label: 'No broker contact' }]}
             groups={brokers
               .filter((b) => b.contacts.length)
               .map((b) => ({ label: b.name, options: b.contacts.map((c) => ({ id: c.id, label: c.name })) }))}
           />
         </Field>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Field label="NEXT STEP">
+            <input
+              className="field"
+              value={form.next}
+              onChange={set('next')}
+              placeholder="e.g. Follow-up call Friday"
+            />
+          </Field>
+        </div>
       </div>
     </Modal>
   )
@@ -173,6 +202,65 @@ export function BuildingModal({ assetName, onClose, onSubmit }) {
           placeholder="e.g. Building E"
         />
       </Field>
+    </Modal>
+  )
+}
+
+export function EditAssetModal({ asset, managers, brokers, leadCount, onClose, onSubmit, onDelete }) {
+  const [form, setForm] = useState({
+    name: asset.name,
+    loc: asset.loc === '—' ? '' : asset.loc,
+    type: asset.type,
+    manager: asset.manager,
+    tenantRep: asset.tenantRep || '',
+  })
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+  const canSave = !!form.name.trim()
+
+  return (
+    <Modal
+      title="Edit asset"
+      sub={leadCount ? `${leadCount} ${leadCount === 1 ? 'lead references' : 'leads reference'} this asset` : 'No leads reference this asset'}
+      width={530}
+      onClose={onClose}
+      footer={
+        <>
+          <button
+            className="btn-danger"
+            style={{ marginRight: 'auto' }}
+            title={leadCount ? 'Blocked while leads reference this asset' : undefined}
+            onClick={() => onDelete()}
+          >
+            Delete asset
+          </button>
+          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn-primary" disabled={!canSave} onClick={() => canSave && onSubmit(form)}>
+            Save
+          </button>
+        </>
+      }
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Field label="NAME *">
+          <input className="field" value={form.name} onChange={set('name')} />
+        </Field>
+        <Field label="LOCATION">
+          <input className="field" value={form.loc} onChange={set('loc')} placeholder="City, country" />
+        </Field>
+        <Field label="TYPE">
+          <Select value={form.type} onChange={set('type')} options={TYPE_OPTIONS} />
+        </Field>
+        <Field label="ASSET MANAGER">
+          <Select value={form.manager} onChange={set('manager')} options={managers.map((m) => ({ id: m.id, label: m.name }))} />
+        </Field>
+        <Field label="TENANT REP">
+          <Select
+            value={form.tenantRep}
+            onChange={set('tenantRep')}
+            options={[{ id: '', label: 'None' }, ...brokers.map((b) => ({ id: b.id, label: b.name }))]}
+          />
+        </Field>
+      </div>
     </Modal>
   )
 }

@@ -9,7 +9,7 @@ import AssetDetail from './components/AssetDetail.jsx'
 import Pipeline from './components/Pipeline.jsx'
 import Brokers from './components/Brokers.jsx'
 import Managers from './components/Managers.jsx'
-import { AssetModal, BrokerModal, BuildingModal, ContactModal, EditBuildingModal, LeadModal, ManagerModal } from './components/modals.jsx'
+import { AssetModal, BrokerModal, BuildingModal, ContactModal, EditAssetModal, EditBuildingModal, LeadModal, ManagerModal } from './components/modals.jsx'
 
 // Dot colors handed out to user-created stages, first unused wins.
 const STAGE_DOTS = ['#948A7B', '#B08327', '#C05F2E', '#9D4A26', '#74803B', '#4C8355', '#3F7A6E', '#9A7B2E', '#6E7A3D', '#A85A32']
@@ -37,6 +37,9 @@ export default function App() {
   const [buildingModal, setBuildingModal] = useState(false)
   // null = closed; otherwise the id of the building being edited (within detailAsset)
   const [editBuilding, setEditBuilding] = useState(null)
+  const [editAsset, setEditAsset] = useState(false)
+  // null = closed; otherwise the id of the lead being edited
+  const [editLead, setEditLead] = useState(null)
   const [brokerModal, setBrokerModal] = useState(false)
   // null = closed; otherwise the id of the broker the new contact belongs to
   const [contactModal, setContactModal] = useState(null)
@@ -156,6 +159,74 @@ export default function App() {
     showToast(`Building added — ${name}`)
   }
 
+  const updateLead = (id, form) => {
+    const firm = brokers.find((b) => b.contacts.some((c) => c.id === form.brokerContact))
+    setLeads((ls) =>
+      ls.map((l) =>
+        l.id !== id
+          ? l
+          : {
+              ...l,
+              company: form.company.trim(),
+              contact: form.contact.trim(),
+              type: form.type,
+              sqm: form.sqm === '' ? 0 : fromIn(Number(form.sqm)),
+              assetId: form.asset,
+              subId: form.sub || null,
+              broker: firm?.id ?? null,
+              brokerContact: form.brokerContact || null,
+              next: form.next.trim(),
+            }
+      )
+    )
+    setEditLead(null)
+    showToast(`Lead updated — ${form.company.trim()}`)
+  }
+
+  const deleteLead = (id) => {
+    const lead = leads.find((l) => l.id === id)
+    if (!lead) return
+    setLeads((ls) => ls.filter((l) => l.id !== id))
+    setEditLead(null)
+    showToast(`Lead deleted — ${lead.company}`)
+  }
+
+  const updateAsset = (form) => {
+    if (!detailAsset) return
+    const name = form.name.trim()
+    setAssets((as) =>
+      as.map((a) =>
+        a.id !== detailAsset.id
+          ? a
+          : {
+              ...a,
+              name,
+              short: shortName(name),
+              loc: form.loc.trim() || '—',
+              type: form.type,
+              manager: form.manager,
+              tenantRep: form.tenantRep || null,
+            }
+      )
+    )
+    setEditAsset(false)
+    showToast(`Asset updated — ${name}`)
+  }
+
+  const deleteAsset = () => {
+    if (!detailAsset) return
+    const n = leads.filter((l) => l.assetId === detailAsset.id).length
+    if (n) {
+      showToast(`Reassign or delete ${n} ${n === 1 ? 'lead' : 'leads'} first`)
+      return
+    }
+    const name = detailAsset.name
+    setAssets((as) => as.filter((a) => a.id !== detailAsset.id))
+    setEditAsset(false)
+    setView('assets')
+    showToast(`Asset deleted — ${name}`)
+  }
+
   const renameBuilding = (name) => {
     if (!detailAsset || !editBuilding) return
     setAssets((as) =>
@@ -255,6 +326,8 @@ export default function App() {
             onAddLead={() => setLeadModal(detailAsset.id)}
             onAddBuilding={() => setBuildingModal(true)}
             onEditBuilding={(subId) => setEditBuilding(subId)}
+            onEditAsset={() => setEditAsset(true)}
+            onEditLead={(id) => setEditLead(id)}
           />
         )}
         {view === 'pipeline' && (
@@ -267,6 +340,7 @@ export default function App() {
             setPAsset={setPAsset}
             openAsset={openAsset}
             moveLead={moveLead}
+            onEditLead={(id) => setEditLead(id)}
             onAddStage={addStage}
             onRenameStage={renameStage}
             onRemoveStage={removeStage}
@@ -301,6 +375,27 @@ export default function App() {
       )}
       {buildingModal && detailAsset && (
         <BuildingModal assetName={detailAsset.name} onClose={() => setBuildingModal(false)} onSubmit={submitBuilding} />
+      )}
+      {editLead && leads.some((l) => l.id === editLead) && (
+        <LeadModal
+          assets={assets}
+          brokers={brokers}
+          lead={leads.find((l) => l.id === editLead)}
+          onClose={() => setEditLead(null)}
+          onSubmit={(form) => updateLead(editLead, form)}
+          onDelete={() => deleteLead(editLead)}
+        />
+      )}
+      {editAsset && detailAsset && (
+        <EditAssetModal
+          asset={detailAsset}
+          managers={managers}
+          brokers={brokers}
+          leadCount={leads.filter((l) => l.assetId === detailAsset.id).length}
+          onClose={() => setEditAsset(false)}
+          onSubmit={updateAsset}
+          onDelete={deleteAsset}
+        />
       )}
       {editBuilding && detailAsset && detailAsset.subs.some((s) => s.id === editBuilding) && (
         <EditBuildingModal
