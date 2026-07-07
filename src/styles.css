@@ -322,6 +322,18 @@ select, input, button { font-family: inherit; }
 .lead-pill.on { color: var(--ac); background: color-mix(in oklab, var(--ac) 12%, #FFFFFF); }
 .lead-pill.off { color: var(--muted); background: var(--bg-side); }
 
+.sub-card { cursor: pointer; transition: border-color .12s ease, box-shadow .12s ease; }
+.sub-card:hover { border-color: #C9C2B4; box-shadow: 0 3px 12px rgba(38, 34, 28, .07); }
+
+.btn-danger {
+  height: 34px; padding: 0 14px;
+  border-radius: 8px; border: 1px solid var(--bd-input);
+  background: #FFFFFF; color: #9D4A26;
+  font-size: 12.5px; font-weight: 600;
+  cursor: pointer;
+}
+.btn-danger:hover { border-color: #C9836A; background: #FBF4F0; }
+
 .dashed-add {
   border: 1.5px dashed var(--bd-input); border-radius: 10px;
   background: none; padding: 24px 16px;

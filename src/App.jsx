@@ -9,7 +9,7 @@ import AssetDetail from './components/AssetDetail.jsx'
 import Pipeline from './components/Pipeline.jsx'
 import Brokers from './components/Brokers.jsx'
 import Managers from './components/Managers.jsx'
-import { AssetModal, BrokerModal, BuildingModal, ContactModal, LeadModal, ManagerModal } from './components/modals.jsx'
+import { AssetModal, BrokerModal, BuildingModal, ContactModal, EditBuildingModal, LeadModal, ManagerModal } from './components/modals.jsx'
 
 // Dot colors handed out to user-created stages, first unused wins.
 const STAGE_DOTS = ['#948A7B', '#B08327', '#C05F2E', '#9D4A26', '#74803B', '#4C8355', '#3F7A6E', '#9A7B2E', '#6E7A3D', '#A85A32']
@@ -35,6 +35,8 @@ export default function App() {
   const [leadModal, setLeadModal] = useState(null)
   const [assetModal, setAssetModal] = useState(false)
   const [buildingModal, setBuildingModal] = useState(false)
+  // null = closed; otherwise the id of the building being edited (within detailAsset)
+  const [editBuilding, setEditBuilding] = useState(null)
   const [brokerModal, setBrokerModal] = useState(false)
   // null = closed; otherwise the id of the broker the new contact belongs to
   const [contactModal, setContactModal] = useState(null)
@@ -154,6 +156,37 @@ export default function App() {
     showToast(`Building added — ${name}`)
   }
 
+  const renameBuilding = (name) => {
+    if (!detailAsset || !editBuilding) return
+    setAssets((as) =>
+      as.map((a) =>
+        a.id !== detailAsset.id
+          ? a
+          : { ...a, subs: a.subs.map((s) => (s.id === editBuilding ? { ...s, name, short: shortName(name) } : s)) }
+      )
+    )
+    setEditBuilding(null)
+    showToast(`Building renamed — ${name}`)
+  }
+
+  const deleteBuilding = () => {
+    if (!detailAsset || !editBuilding) return
+    const sub = detailAsset.subs.find((s) => s.id === editBuilding)
+    if (!sub) return
+    const moved = leads.filter((l) => l.assetId === detailAsset.id && l.subId === editBuilding).length
+    setAssets((as) =>
+      as.map((a) => (a.id !== detailAsset.id ? a : { ...a, subs: a.subs.filter((s) => s.id !== editBuilding) }))
+    )
+    if (moved) {
+      // leads assigned to the removed building fall back to the whole asset
+      setLeads((ls) =>
+        ls.map((l) => (l.assetId === detailAsset.id && l.subId === editBuilding ? { ...l, subId: null } : l))
+      )
+    }
+    setEditBuilding(null)
+    showToast(`Building removed — ${sub.name}${moved ? ` (${moved} ${moved === 1 ? 'lead' : 'leads'} → whole asset)` : ''}`)
+  }
+
   const submitBroker = (form) => {
     const name = form.name.trim()
     setBrokers((bs) => [...bs, { id: `br${Date.now()}`, name, contacts: [] }])
@@ -221,6 +254,7 @@ export default function App() {
             goAssets={() => setView('assets')}
             onAddLead={() => setLeadModal(detailAsset.id)}
             onAddBuilding={() => setBuildingModal(true)}
+            onEditBuilding={(subId) => setEditBuilding(subId)}
           />
         )}
         {view === 'pipeline' && (
@@ -267,6 +301,15 @@ export default function App() {
       )}
       {buildingModal && detailAsset && (
         <BuildingModal assetName={detailAsset.name} onClose={() => setBuildingModal(false)} onSubmit={submitBuilding} />
+      )}
+      {editBuilding && detailAsset && detailAsset.subs.some((s) => s.id === editBuilding) && (
+        <EditBuildingModal
+          building={detailAsset.subs.find((s) => s.id === editBuilding)}
+          leadCount={leads.filter((l) => l.assetId === detailAsset.id && l.subId === editBuilding && isActive(l)).length}
+          onClose={() => setEditBuilding(null)}
+          onRename={renameBuilding}
+          onDelete={deleteBuilding}
+        />
       )}
       {brokerModal && <BrokerModal onClose={() => setBrokerModal(false)} onSubmit={submitBroker} />}
       {contactModal !== null && (

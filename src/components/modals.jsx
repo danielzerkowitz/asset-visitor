@@ -177,6 +177,46 @@ export function BuildingModal({ assetName, onClose, onSubmit }) {
   )
 }
 
+export function EditBuildingModal({ building, leadCount, onClose, onRename, onDelete }) {
+  const [name, setName] = useState(building.name)
+  const canSave = !!name.trim()
+
+  return (
+    <Modal
+      title="Edit building"
+      sub={leadCount ? `${leadCount} active ${leadCount === 1 ? 'lead is' : 'leads are'} assigned here` : 'No active leads assigned'}
+      width={400}
+      onClose={onClose}
+      footer={
+        <>
+          <button
+            className="btn-danger"
+            style={{ marginRight: 'auto' }}
+            title={leadCount ? 'Its leads move to “Whole asset”' : undefined}
+            onClick={() => onDelete()}
+          >
+            Delete{leadCount ? ` (${leadCount} ${leadCount === 1 ? 'lead' : 'leads'} → whole asset)` : ''}
+          </button>
+          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn-primary" disabled={!canSave} onClick={() => canSave && onRename(name.trim())}>
+            Save
+          </button>
+        </>
+      }
+    >
+      <Field label="NAME *">
+        <input
+          className="field"
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && canSave) onRename(name.trim()) }}
+        />
+      </Field>
+    </Modal>
+  )
+}
+
 export function BrokerModal({ onClose, onSubmit }) {
   const [form, setForm] = useState({ name: '' })
   const canSubmit = !!form.name.trim()

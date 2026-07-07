@@ -2,7 +2,7 @@ import { area, cv, fmt, unit } from '../units.js'
 import { brokerName, buildingCount, contactInit, isActive, managerName, visitCount } from '../lib.js'
 import { Avatar, KpiCard } from './ui.jsx'
 
-export default function AssetDetail({ asset, leads, brokers, managers, stages, goAssets, onAddLead, onAddBuilding }) {
+export default function AssetDetail({ asset, leads, brokers, managers, stages, goAssets, onAddLead, onAddBuilding, onEditBuilding }) {
   const aLeads = leads.filter((l) => l.assetId === asset.id)
   const active = aLeads.filter(isActive)
   const demand = active.reduce((n, l) => n + (l.sqm || 0), 0)
@@ -58,7 +58,13 @@ export default function AssetDetail({ asset, leads, brokers, managers, stages, g
             const mine = active.filter((l) => l.subId === s.id)
             const bDemand = mine.reduce((n, l) => n + (l.sqm || 0), 0)
             return (
-              <div key={s.id} className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div
+                key={s.id}
+                className="card sub-card"
+                title="Click to edit"
+                onClick={() => onEditBuilding(s.id)}
+                style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}
+              >
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
                   <span className="card-title">{s.name}</span>
                   <span className={`lead-pill ${mine.length ? 'on' : 'off'}`}>
