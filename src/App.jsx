@@ -116,6 +116,7 @@ export default function App() {
       type: form.type,
       loc: form.loc.trim() || '—',
       manager: form.manager,
+      tenantRep: form.tenantRep || null,
       subs: single
         ? [{
             id: 'main',
@@ -251,6 +252,7 @@ export default function App() {
         {view === 'brokers' && (
           <Brokers
             brokers={brokers}
+            assets={assets}
             leads={leads}
             onAddBroker={() => setBrokerModal(true)}
             onAddContact={(brokerId) => setContactModal(brokerId)}
@@ -271,7 +273,9 @@ export default function App() {
           onSubmit={submitLead}
         />
       )}
-      {assetModal && <AssetModal managers={managers} onClose={() => setAssetModal(false)} onSubmit={submitAsset} />}
+      {assetModal && (
+        <AssetModal managers={managers} brokers={brokers} onClose={() => setAssetModal(false)} onSubmit={submitAsset} />
+      )}
       {buildingModal && detailAsset && (
         <BuildingModal assetName={detailAsset.name} onClose={() => setBuildingModal(false)} onSubmit={submitBuilding} />
       )}

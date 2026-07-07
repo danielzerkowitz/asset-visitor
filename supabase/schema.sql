@@ -3,15 +3,18 @@
 -- The app seeds the tables with demo data on first load when they are empty.
 
 create table if not exists public.assets (
-  id       text primary key,
-  name     text not null,
-  short    text not null default '',
-  type     text not null default 'Office',
-  loc      text not null default '—',
-  manager  text not null default '',
-  subs     jsonb not null default '[]'::jsonb,
-  position integer not null default 0
+  id         text primary key,
+  name       text not null,
+  short      text not null default '',
+  type       text not null default 'Office',
+  loc        text not null default '—',
+  manager    text not null default '',
+  tenant_rep text,  -- broker id when a broker holds the mandate on this asset
+  subs       jsonb not null default '[]'::jsonb,
+  position   integer not null default 0
 );
+-- Upgrade for databases created before tenant_rep existed:
+alter table public.assets add column if not exists tenant_rep text;
 
 create table if not exists public.brokers (
   id       text primary key,

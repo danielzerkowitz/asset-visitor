@@ -1,5 +1,5 @@
 import { area, cv, fmt, rentFmt, unit } from '../units.js'
-import { aggAsset, buildingCount, contactInit, managerName } from '../lib.js'
+import { aggAsset, brokerName, buildingCount, contactInit, managerName } from '../lib.js'
 import { Avatar, KpiCard } from './ui.jsx'
 
 export default function AssetDetail({ asset, leads, brokers, managers, stages, goAssets, onAddLead, onAddBuilding }) {
@@ -27,6 +27,9 @@ export default function AssetDetail({ asset, leads, brokers, managers, stages, g
             </div>
             <div className="page-sub" style={{ marginTop: 4 }}>
               {asset.loc} · {buildingCount(asset)} · Managed by {managerName(managers, asset.manager)}
+              {asset.tenantRep && brokerName(brokers, asset.tenantRep) && (
+                <> · Tenant rep: {brokerName(brokers, asset.tenantRep)}</>
+              )}
             </div>
           </div>
           <button className="btn-primary" onClick={onAddLead}>

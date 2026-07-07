@@ -26,6 +26,11 @@ export function whereLabel(assets, lead) {
   return `${a.short} · ${s.short}`
 }
 
+export function brokerName(brokers, id) {
+  const b = brokers.find((x) => x.id === id)
+  return b ? b.name : null
+}
+
 export function findContact(brokers, id) {
   for (const b of brokers) {
     const c = b.contacts.find((x) => x.id === id)

@@ -1,6 +1,6 @@
 import { Avatar } from './ui.jsx'
 
-export default function Brokers({ brokers, leads, onAddBroker, onAddContact }) {
+export default function Brokers({ brokers, assets, leads, onAddBroker, onAddContact }) {
   const statsFor = (contactId) => {
     const mine = leads.filter((l) => l.brokerContact === contactId)
     return {
@@ -24,12 +24,18 @@ export default function Brokers({ brokers, leads, onAddBroker, onAddContact }) {
 
       {brokers.map((b) => {
         const active = b.contacts.reduce((n, c) => n + statsFor(c.id).active, 0)
+        const repped = assets.filter((a) => a.tenantRep === b.id)
         return (
           <div key={b.id} className="card card--clip">
             <div className="card-head">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span className="card-title">{b.name}</span>
                 <span className="count-chip">{active} active {active === 1 ? 'lead' : 'leads'}</span>
+                {repped.length > 0 && (
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>
+                    Tenant rep for {repped.map((a) => a.name).join(', ')}
+                  </span>
+                )}
               </div>
               <button className="btn-secondary btn-secondary--sm" onClick={() => onAddContact(b.id)}>
                 <span className="plus">+</span>Add contact

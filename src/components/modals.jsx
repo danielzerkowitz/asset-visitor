@@ -79,10 +79,10 @@ export function LeadModal({ assets, brokers, firstStageLabel, initialAssetId, on
   )
 }
 
-export function AssetModal({ managers, onClose, onSubmit }) {
+export function AssetModal({ managers, brokers, onClose, onSubmit }) {
   const [form, setForm] = useState({
     name: '', loc: '', type: 'Office', structure: 'park',
-    manager: managers[0]?.id ?? '', sqm: '', units: '', rent: '',
+    manager: managers[0]?.id ?? '', tenantRep: '', sqm: '', units: '', rent: '',
   })
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
@@ -120,6 +120,13 @@ export function AssetModal({ managers, onClose, onSubmit }) {
         </Field>
         <Field label="ASSET MANAGER">
           <Select value={form.manager} onChange={set('manager')} options={managers.map((m) => ({ id: m.id, label: m.name }))} />
+        </Field>
+        <Field label="TENANT REP">
+          <Select
+            value={form.tenantRep}
+            onChange={set('tenantRep')}
+            options={[{ id: '', label: 'None' }, ...brokers.map((b) => ({ id: b.id, label: b.name }))]}
+          />
         </Field>
         <div style={{ gridColumn: '1 / -1' }}>
           <div className="flabel">STRUCTURE</div>

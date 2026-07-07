@@ -4,13 +4,13 @@ export const assetsSeed = [
     { id: 'b', name: 'Building B', short: 'Bldg B', sqm: 3800, occ: 0.74, units: 10, vacant: 3, rent: 158 },
     { id: 'c', name: 'Building C', short: 'Bldg C', sqm: 5100, occ: 0.88, units: 14, vacant: 2, rent: 172 },
     { id: 'd', name: 'Building D', short: 'Bldg D', sqm: 2600, occ: 0.55, units: 8, vacant: 4, rent: 149 } ] },
-  { id: 'northgate', name: 'Northgate Logistics Hub', short: 'Northgate', type: 'Industrial', loc: 'Antwerp, BE', manager: 'PV', subs: [
+  { id: 'northgate', name: 'Northgate Logistics Hub', short: 'Northgate', type: 'Industrial', loc: 'Antwerp, BE', manager: 'PV', tenantRep: 'quadrant', subs: [
     { id: 'w1', name: 'Warehouse 1', short: 'W1', sqm: 9200, occ: 1, units: 4, vacant: 0, rent: 62 },
     { id: 'w2', name: 'Warehouse 2', short: 'W2', sqm: 7400, occ: 0.81, units: 6, vacant: 1, rent: 58 },
     { id: 'w3', name: 'Warehouse 3', short: 'W3', sqm: 11800, occ: 0.68, units: 8, vacant: 3, rent: 55 } ] },
   { id: 'cortenberg', name: 'Cortenberg 12', short: 'Cortenberg 12', type: 'Office', loc: 'Brussels, BE', manager: 'LV', subs: [
     { id: 'main', name: 'Cortenberg 12 (whole building)', short: '', single: true, sqm: 3100, occ: 0.79, units: 9, vacant: 2, rent: 210 } ] },
-  { id: 'arcade', name: 'Arcade Retail Court', short: 'Arcade', type: 'Retail', loc: 'Ghent, BE', manager: 'PV', subs: [
+  { id: 'arcade', name: 'Arcade Retail Court', short: 'Arcade', type: 'Retail', loc: 'Ghent, BE', manager: 'PV', tenantRep: 'halewijn', subs: [
     { id: 'n', name: 'North Block', short: 'North', sqm: 2400, occ: 0.9, units: 10, vacant: 1, rent: 310 },
     { id: 's', name: 'South Block', short: 'South', sqm: 1900, occ: 0.62, units: 8, vacant: 3, rent: 285 } ] },
   { id: 'solvay', name: 'Solvay Campus', short: 'Solvay', type: 'Office', loc: 'Brussels, BE', manager: 'LV', subs: [

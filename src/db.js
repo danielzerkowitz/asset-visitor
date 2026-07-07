@@ -14,11 +14,13 @@ export const TABLES = {
     table: 'assets',
     toRow: (a, i) => ({
       id: a.id, name: a.name, short: a.short, type: a.type,
-      loc: a.loc, manager: a.manager, subs: a.subs, position: i,
+      loc: a.loc, manager: a.manager, tenant_rep: a.tenantRep ?? null,
+      subs: a.subs, position: i,
     }),
     fromRow: (r) => ({
       id: r.id, name: r.name, short: r.short, type: r.type,
-      loc: r.loc, manager: r.manager, subs: r.subs ?? [],
+      loc: r.loc, manager: r.manager, tenantRep: r.tenant_rep ?? null,
+      subs: r.subs ?? [],
     }),
   },
   brokers: {
