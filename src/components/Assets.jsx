@@ -1,9 +1,9 @@
 import { area } from '../units.js'
-import { aggAsset, buildingCount, isActive } from '../lib.js'
+import { buildingCount, isActive, visitCount } from '../lib.js'
 
 export default function Assets({ assets, leads, openAsset, onNewAsset }) {
   const totalSubs = assets.reduce((n, a) => n + a.subs.length, 0)
-  const totalSqm = assets.reduce((n, a) => n + a.subs.reduce((m, s) => m + s.sqm, 0), 0)
+  const active = leads.filter(isActive)
 
   return (
     <div className="page">
@@ -11,7 +11,7 @@ export default function Assets({ assets, leads, openAsset, onNewAsset }) {
         <div>
           <h1 className="page-title">Assets</h1>
           <div className="page-sub">
-            {assets.length} assets · {totalSubs} buildings · {area(totalSqm)}
+            {assets.length} assets · {totalSubs} buildings · {active.length} active leads
           </div>
         </div>
         <button className="btn-primary" onClick={onNewAsset}>
@@ -21,9 +21,9 @@ export default function Assets({ assets, leads, openAsset, onNewAsset }) {
 
       <div className="asset-grid">
         {assets.map((a) => {
-          const { t, o, v } = aggAsset(a)
-          const nLeads = leads.filter((l) => l.assetId === a.id && isActive(l)).length
-          const pct = Math.round(o * 100)
+          const mine = active.filter((l) => l.assetId === a.id)
+          const demand = mine.reduce((n, l) => n + (l.sqm || 0), 0)
+          const visits = mine.reduce((n, l) => n + visitCount(l), 0)
           return (
             <div key={a.id} className="asset-card" onClick={() => openAsset(a.id)}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
@@ -37,23 +37,20 @@ export default function Assets({ assets, leads, openAsset, onNewAsset }) {
               </div>
               <div className="asset-stats">
                 <div>
-                  <div className="mlabel mlabel--sm">AREA</div>
-                  <div className="asset-stat-val">{area(t)}</div>
-                </div>
-                <div>
-                  <div className="mlabel mlabel--sm">OCCUPANCY</div>
-                  <div className="asset-stat-val">{pct}%</div>
-                  <div className="meter" style={{ marginTop: 5, height: 4 }}>
-                    <div style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-                <div>
-                  <div className="mlabel mlabel--sm">VACANT</div>
-                  <div className="asset-stat-val">{area(v)}</div>
-                </div>
-                <div>
                   <div className="mlabel mlabel--sm">ACTIVE LEADS</div>
-                  <div className="asset-stat-val">{nLeads}</div>
+                  <div className="asset-stat-val">{mine.length}</div>
+                </div>
+                <div>
+                  <div className="mlabel mlabel--sm">DEMAND</div>
+                  <div className="asset-stat-val">{demand ? area(demand) : '—'}</div>
+                </div>
+                <div>
+                  <div className="mlabel mlabel--sm">VISITS DONE</div>
+                  <div className="asset-stat-val">{visits}</div>
+                </div>
+                <div>
+                  <div className="mlabel mlabel--sm">BUILDINGS</div>
+                  <div className="asset-stat-val">{a.subs.length}</div>
                 </div>
               </div>
             </div>

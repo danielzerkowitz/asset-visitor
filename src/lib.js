@@ -1,13 +1,5 @@
 // Pure derivation helpers shared by screens.
 
-// Aggregate an asset's buildings: total m², area-weighted occupancy, vacant m².
-export function aggAsset(a) {
-  const t = a.subs.reduce((n, s) => n + s.sqm, 0)
-  const o = t ? a.subs.reduce((n, s) => n + s.sqm * s.occ, 0) / t : 0
-  const v = a.subs.reduce((n, s) => n + s.sqm * (1 - s.occ), 0)
-  return { t, o, v }
-}
-
 export function buildingCount(a) {
   if (a.subs.length === 0) return 'No buildings yet'
   if (a.subs.length === 1) return 'Single building'
@@ -84,15 +76,3 @@ export function leadInScope(l, fAsset, fSub) {
   return true
 }
 
-// All (asset, building) pairs inside the current filter scope.
-export function scopeSubs(assets, fAsset, fSub) {
-  const out = []
-  assets.forEach((a) =>
-    a.subs.forEach((s) => {
-      if (fAsset !== 'all' && a.id !== fAsset) return
-      if (fSub !== 'all' && s.id !== fSub) return
-      out.push({ a, s })
-    })
-  )
-  return out
-}

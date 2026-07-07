@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { areaLabel, rentLabel, sizeLabel } from '../units.js'
+import { sizeLabel } from '../units.js'
 import { findAsset } from '../lib.js'
 import { Field, Modal, Select } from './ui.jsx'
 
@@ -82,12 +82,11 @@ export function LeadModal({ assets, brokers, firstStageLabel, initialAssetId, on
 export function AssetModal({ managers, brokers, onClose, onSubmit }) {
   const [form, setForm] = useState({
     name: '', loc: '', type: 'Office', structure: 'park',
-    manager: managers[0]?.id ?? '', tenantRep: '', sqm: '', units: '', rent: '',
+    manager: managers[0]?.id ?? '', tenantRep: '',
   })
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
-  const single = form.structure === 'single'
-  const canSubmit = !!(form.name.trim() && (!single || (Number(form.sqm) > 0 && Number(form.units) > 0)))
+  const canSubmit = !!form.name.trim()
   const structOptions = [
     { id: 'park', label: 'Park (multi-building)' },
     { id: 'single', label: 'Single building' },
@@ -142,34 +141,20 @@ export function AssetModal({ managers, brokers, onClose, onSubmit }) {
             ))}
           </div>
         </div>
-        {single && (
-          <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-            <Field label={`${areaLabel()} *`}>
-              <input className="field" type="number" min="0" value={form.sqm} onChange={set('sqm')} placeholder="3100" />
-            </Field>
-            <Field label="UNITS *">
-              <input className="field" type="number" min="0" value={form.units} onChange={set('units')} placeholder="9" />
-            </Field>
-            <Field label={rentLabel()}>
-              <input className="field" type="number" min="0" value={form.rent} onChange={set('rent')} placeholder="185" />
-            </Field>
-          </div>
-        )}
       </div>
     </Modal>
   )
 }
 
 export function BuildingModal({ assetName, onClose, onSubmit }) {
-  const [form, setForm] = useState({ name: '', sqm: '', units: '', rent: '' })
-  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
-  const canSubmit = !!(form.name.trim() && Number(form.sqm) > 0 && Number(form.units) > 0)
+  const [form, setForm] = useState({ name: '' })
+  const canSubmit = !!form.name.trim()
 
   return (
     <Modal
       title="Add building"
-      sub={`New building in ${assetName} · starts 100% vacant`}
-      width={480}
+      sub={`New building in ${assetName}`}
+      width={400}
       onClose={onClose}
       footer={
         <>
@@ -180,22 +165,14 @@ export function BuildingModal({ assetName, onClose, onSubmit }) {
         </>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Field label="NAME *">
-          <input className="field" value={form.name} onChange={set('name')} placeholder="e.g. Building E" />
-        </Field>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-          <Field label={`${areaLabel()} *`}>
-            <input className="field" type="number" min="0" value={form.sqm} onChange={set('sqm')} placeholder="2800" />
-          </Field>
-          <Field label="UNITS *">
-            <input className="field" type="number" min="0" value={form.units} onChange={set('units')} placeholder="8" />
-          </Field>
-          <Field label={rentLabel()}>
-            <input className="field" type="number" min="0" value={form.rent} onChange={set('rent')} placeholder="165" />
-          </Field>
-        </div>
-      </div>
+      <Field label="NAME *">
+        <input
+          className="field"
+          value={form.name}
+          onChange={(e) => setForm({ name: e.target.value })}
+          placeholder="e.g. Building E"
+        />
+      </Field>
     </Modal>
   )
 }

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { fromIn, rentIn } from './units.js'
+import { fromIn } from './units.js'
 import { findAsset, initialsOf, isActive, shortName } from './lib.js'
 import useStore from './useStore.js'
 import Sidebar from './components/Sidebar.jsx'
@@ -121,17 +121,7 @@ export default function App() {
       manager: form.manager,
       tenantRep: form.tenantRep || null,
       subs: single
-        ? [{
-            id: 'main',
-            name: `${name} (whole building)`,
-            short: '',
-            single: true,
-            sqm: fromIn(Number(form.sqm)),
-            occ: 0,
-            units: Number(form.units),
-            vacant: Number(form.units),
-            rent: rentIn(Number(form.rent) || 0),
-          }]
+        ? [{ id: 'main', name: `${name} (whole building)`, short: '', single: true, sqm: 0, occ: 0, units: 0, vacant: 0, rent: 0 }]
         : [],
     }
     setAssets((as) => [...as, asset])
@@ -147,11 +137,7 @@ export default function App() {
       id: `s${Date.now()}`,
       name,
       short: shortName(name),
-      sqm: fromIn(Number(form.sqm)),
-      occ: 0,
-      units: Number(form.units),
-      vacant: Number(form.units),
-      rent: rentIn(Number(form.rent) || 0),
+      sqm: 0, occ: 0, units: 0, vacant: 0, rent: 0,
     }
     setAssets((as) =>
       as.map((a) =>

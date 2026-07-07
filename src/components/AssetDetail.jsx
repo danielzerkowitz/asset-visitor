@@ -1,18 +1,20 @@
-import { area, cv, fmt, rentFmt, unit } from '../units.js'
-import { aggAsset, brokerName, buildingCount, contactInit, isActive, managerName } from '../lib.js'
+import { area, cv, fmt, unit } from '../units.js'
+import { brokerName, buildingCount, contactInit, isActive, managerName, visitCount } from '../lib.js'
 import { Avatar, KpiCard } from './ui.jsx'
 
 export default function AssetDetail({ asset, leads, brokers, managers, stages, goAssets, onAddLead, onAddBuilding }) {
-  const { t, o, v } = aggAsset(asset)
   const aLeads = leads.filter((l) => l.assetId === asset.id)
+  const active = aLeads.filter(isActive)
+  const demand = active.reduce((n, l) => n + (l.sqm || 0), 0)
+  const visitsDone = active.reduce((n, l) => n + visitCount(l), 0)
   const order = stages.map((s) => s.id)
   const sorted = aLeads.slice().sort((x, y) => order.indexOf(x.stage) - order.indexOf(y.stage))
 
   const kpis = [
-    { label: 'TOTAL AREA', value: fmt(cv(t)), unit: unit(), note: `${asset.subs.reduce((n, s) => n + s.units, 0)} units` },
-    { label: 'OCCUPANCY', value: String(Math.round(o * 100)), unit: '%', note: 'weighted by area' },
-    { label: 'VACANT AREA', value: fmt(cv(v)), unit: unit(), note: `${asset.subs.reduce((n, s) => n + s.vacant, 0)} vacant units` },
-    { label: 'ACTIVE LEADS', value: String(aLeads.filter(isActive).length), unit: '', note: 'excluding signed & out' },
+    { label: 'ACTIVE LEADS', value: String(active.length), unit: '', note: 'excluding signed & out' },
+    { label: 'DEMAND', value: demand ? fmt(cv(demand)) : '—', unit: demand ? unit() : '', note: 'sqm active leads are seeking' },
+    { label: 'VISITS DONE', value: String(visitsDone), unit: '', note: 'across active leads' },
+    { label: 'SIGNED', value: String(aLeads.filter((l) => l.stage === 'signed').length), unit: '', note: 'all time' },
   ]
 
   return (
@@ -53,35 +55,18 @@ export default function AssetDetail({ asset, leads, brokers, managers, stages, g
         </div>
         <div className="subs-grid">
           {asset.subs.map((s) => {
-            const n = leads.filter((l) => l.assetId === asset.id && l.subId === s.id && isActive(l)).length
-            const pct = Math.round(s.occ * 100)
+            const mine = active.filter((l) => l.subId === s.id)
+            const bDemand = mine.reduce((n, l) => n + (l.sqm || 0), 0)
             return (
               <div key={s.id} className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
                   <span className="card-title">{s.name}</span>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 13, fontWeight: 600 }}>{pct}%</span>
-                </div>
-                <div className="meter" style={{ height: 5 }}><div style={{ width: `${pct}%` }} /></div>
-                <div
-                  style={{
-                    display: 'flex', justifyContent: 'space-between', gap: 8,
-                    fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-3)', whiteSpace: 'nowrap',
-                  }}
-                >
-                  <span>{area(s.sqm)}</span>
-                  <span>{s.units} units</span>
-                  <span>{s.vacant} vacant</span>
-                </div>
-                <div
-                  style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
-                    paddingTop: 9, borderTop: '1px solid var(--bd-soft)',
-                  }}
-                >
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--muted)' }}>
-                    {s.rent ? rentFmt(s.rent) : 'rent —'}
+                  <span className={`lead-pill ${mine.length ? 'on' : 'off'}`}>
+                    {mine.length === 1 ? '1 lead' : `${mine.length} leads`}
                   </span>
-                  <span className={`lead-pill ${n ? 'on' : 'off'}`}>{n === 1 ? '1 lead' : `${n} leads`}</span>
+                </div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-3)' }}>
+                  {bDemand ? `${area(bDemand)} in demand` : 'no active demand'}
                 </div>
               </div>
             )
@@ -109,7 +94,7 @@ export default function AssetDetail({ asset, leads, brokers, managers, stages, g
                 <div style={{ marginTop: 1, fontSize: 11.5, color: 'var(--muted)' }}>{l.contact}</div>
               </div>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-3)', whiteSpace: 'nowrap' }}>
-                {l.type} · {area(l.sqm)}
+                {l.type} · {l.sqm ? area(l.sqm) : '— m²'}
               </span>
               <span style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>
                 {sub ? (sub.single ? '—' : sub.short) : 'Whole asset'}

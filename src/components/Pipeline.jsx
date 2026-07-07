@@ -121,7 +121,7 @@ export default function Pipeline({ assets, leads, brokers, stages, pAsset, setPA
                   </div>
                   <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: -4 }}>{l.contact}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                    <span className="pcard-need">{l.type} · {area(l.sqm)}</span>
+                    <span className="pcard-need">{l.type} · {l.sqm ? area(l.sqm) : '— m²'}</span>
                   </div>
                   <button className="pcard-where" onClick={() => openAsset(l.assetId)}>
                     {whereLabel(assets, l)}

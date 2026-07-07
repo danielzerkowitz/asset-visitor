@@ -1,5 +1,5 @@
 import { area, cv, fmt, unit } from '../units.js'
-import { aggAsset, buildingCount, findAsset, fmtDate, isActive, lastVisit, leadInScope, scopeSubs, visitCount, whereLabel } from '../lib.js'
+import { buildingCount, findAsset, fmtDate, isActive, lastVisit, leadInScope, visitCount, whereLabel } from '../lib.js'
 import { KpiCard, Select } from './ui.jsx'
 
 function todayLabel() {
@@ -7,6 +7,8 @@ function todayLabel() {
     .toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
     .replace(',', '')
 }
+
+const demandOf = (ls) => ls.reduce((n, l) => n + (l.sqm || 0), 0)
 
 export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setFSub, openAsset }) {
   const selAsset = fAsset !== 'all' ? findAsset(assets, fAsset) : null
@@ -20,57 +22,59 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
   const subDisabled = !selAsset || multiSubs.length === 0
   const filterActive = fAsset !== 'all' || fSub !== 'all'
 
-  const scope = scopeSubs(assets, fAsset, fSub)
-  const totSqm = scope.reduce((n, x) => n + x.s.sqm, 0)
-  const occ = totSqm ? scope.reduce((n, x) => n + x.s.sqm * x.s.occ, 0) / totSqm : 0
-  const vac = scope.reduce((n, x) => n + x.s.sqm * (1 - x.s.occ), 0)
   const leadsScoped = leads.filter((l) => leadInScope(l, fAsset, fSub))
   const activeScoped = leadsScoped.filter(isActive)
   const visitsDone = activeScoped.reduce((n, l) => n + visitCount(l), 0)
+  const proposals = activeScoped.filter((l) => l.stage === 'proposal' || l.stage === 'agreed').length
 
   const kpis = [
-    { label: 'OCCUPANCY', value: String(Math.round(occ * 100)), unit: '%', note: 'weighted by area' },
-    {
-      label: 'VACANT AREA',
-      value: fmt(cv(vac)),
-      unit: unit(),
-      note: `${scope.length} ${scope.length === 1 ? 'building' : 'buildings'} in scope`,
-    },
     { label: 'ACTIVE LEADS', value: String(activeScoped.length), unit: '', note: 'excluding signed & out' },
+    { label: 'DEMAND', value: fmt(cv(demandOf(activeScoped))), unit: unit(), note: 'sqm active leads are seeking' },
     { label: 'VISITS DONE', value: String(visitsDone), unit: '', note: 'across active leads' },
+    { label: 'PROPOSALS OUT', value: String(proposals), unit: '', note: 'incl. agreed' },
   ]
 
-  let occTitle, occColLabel, occRows
+  // ---- leads-by-asset (or by building when an asset is selected)
+  let tableTitle, colLabel, rows
   if (!selAsset) {
-    occTitle = 'Occupancy by asset'
-    occColLabel = 'ASSET'
-    occRows = assets.map((a) => {
-      const { t, o, v } = aggAsset(a)
+    tableTitle = 'Leads by asset'
+    colLabel = 'ASSET'
+    rows = assets.map((a) => {
+      const mine = leads.filter((l) => l.assetId === a.id && isActive(l))
       return {
         id: a.id,
         name: a.name,
         meta: `${a.type} · ${buildingCount(a).toLowerCase()}`,
-        area: area(t),
-        pct: Math.round(o * 100),
-        vacant: area(v),
+        active: mine.length,
+        demand: demandOf(mine),
+        visits: mine.reduce((n, l) => n + visitCount(l), 0),
         open: () => openAsset(a.id),
       }
     })
   } else {
-    occTitle = `Buildings — ${selAsset.name}`
-    occColLabel = 'BUILDING'
-    occRows = selAsset.subs
+    tableTitle = `Leads by building — ${selAsset.name}`
+    colLabel = 'BUILDING'
+    const bRows = selAsset.subs
       .filter((s) => fSub === 'all' || s.id === fSub)
-      .map((s) => ({
-        id: s.id,
-        name: s.name,
-        meta: `${s.units} units · ${s.vacant} vacant`,
-        area: area(s.sqm),
-        pct: Math.round(s.occ * 100),
-        vacant: area(s.sqm * (1 - s.occ)),
-        open: () => openAsset(selAsset.id),
-      }))
+      .map((s) => {
+        const mine = leads.filter((l) => l.assetId === selAsset.id && l.subId === s.id && isActive(l))
+        return { id: s.id, name: s.name, meta: null, mine }
+      })
+    const loose = leads.filter((l) => l.assetId === selAsset.id && !l.subId && isActive(l))
+    if (fSub === 'all' && loose.length) {
+      bRows.push({ id: '__whole', name: 'Whole asset', meta: 'no building assigned', mine: loose })
+    }
+    rows = bRows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      meta: r.meta,
+      active: r.mine.length,
+      demand: demandOf(r.mine),
+      visits: r.mine.reduce((n, l) => n + visitCount(l), 0),
+      open: () => openAsset(selAsset.id),
+    }))
   }
+  const maxDemand = Math.max(1, ...rows.map((r) => r.demand))
 
   const visits = activeScoped
     .filter((l) => lastVisit(l))
@@ -82,6 +86,8 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
       where: whereLabel(assets, l),
       when: l.when || fmtDate(lastVisit(l)),
     }))
+
+  const tableCols = 'minmax(170px,1.2fr) 80px 1fr 110px 90px'
 
   return (
     <div className="page page--dash">
@@ -125,28 +131,33 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 330px', gap: 14, alignItems: 'start' }}>
         <div className="card card--clip">
           <div className="card-head">
-            <span className="card-title">{occTitle}</span>
+            <span className="card-title">{tableTitle}</span>
             <span className="mlabel" style={{ letterSpacing: '.06em' }}>CLICK A ROW TO OPEN</span>
           </div>
-          <div className="grid-row occ-cols thead-row">
-            <span className="mlabel">{occColLabel}</span>
-            <span className="mlabel" style={{ textAlign: 'right' }}>AREA</span>
-            <span className="mlabel">OCCUPANCY</span>
+          <div className="grid-row thead-row" style={{ gridTemplateColumns: tableCols }}>
+            <span className="mlabel">{colLabel}</span>
+            <span className="mlabel" style={{ textAlign: 'right' }}>ACTIVE</span>
+            <span className="mlabel">DEMAND</span>
             <span />
-            <span className="mlabel" style={{ textAlign: 'right' }}>VACANT</span>
+            <span className="mlabel" style={{ textAlign: 'right' }}>VISITS</span>
           </div>
-          {occRows.map((row) => (
-            <div key={row.id} className="grid-row occ-cols occ-row" onClick={row.open}>
+          {rows.map((row) => (
+            <div
+              key={row.id}
+              className="grid-row occ-row"
+              style={{ gridTemplateColumns: tableCols }}
+              onClick={row.open}
+            >
               <div>
                 <div style={{ fontSize: 13.5, fontWeight: 600 }}>{row.name}</div>
-                <div style={{ marginTop: 2, fontSize: 11.5, color: 'var(--muted)' }}>{row.meta}</div>
+                {row.meta && <div style={{ marginTop: 2, fontSize: 11.5, color: 'var(--muted)' }}>{row.meta}</div>}
               </div>
-              <div className="mono-cell">{row.area}</div>
-              <div className="meter"><div style={{ width: `${row.pct}%` }} /></div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 12.5, fontWeight: 600, textAlign: 'right' }}>
-                {row.pct}%
+                {row.active}
               </div>
-              <div className="mono-cell" style={{ fontSize: 11, color: 'var(--muted)' }}>{row.vacant}</div>
+              <div className="meter"><div style={{ width: `${Math.round((row.demand / maxDemand) * 100)}%` }} /></div>
+              <div className="mono-cell">{row.demand ? area(row.demand) : '—'}</div>
+              <div className="mono-cell" style={{ fontSize: 11, color: 'var(--muted)' }}>{row.visits}</div>
             </div>
           ))}
         </div>
