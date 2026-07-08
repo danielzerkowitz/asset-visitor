@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase, fetchCollection, insertCollection, syncCollection } from './db.js'
-import { assetsSeed, brokersSeed, leadsSeed, managersSeed, stages as stagesSeed } from './data.js'
+import { assetsSeed, brokersSeed, eventTypesSeed, leadsSeed, managersSeed, stages as stagesSeed } from './data.js'
 
 const SEEDS = {
   assets: assetsSeed,
@@ -8,6 +8,7 @@ const SEEDS = {
   managers: managersSeed,
   stages: stagesSeed,
   leads: leadsSeed,
+  eventTypes: eventTypesSeed,
 }
 
 const lsKey = (name) => `atlas.v1.${name}`
@@ -91,6 +92,7 @@ export default function useStore() {
   const [managers, setManagers, r3] = useCollection('managers')
   const [stages, setStages, r4] = useCollection('stages')
   const [leads, setLeads, r5] = useCollection('leads')
+  const [eventTypes, setEventTypes, r6] = useCollection('eventTypes')
 
   return {
     assets, setAssets,
@@ -98,7 +100,8 @@ export default function useStore() {
     managers, setManagers,
     stages, setStages,
     leads, setLeads,
-    ready: r1 && r2 && r3 && r4 && r5,
+    eventTypes, setEventTypes,
+    ready: r1 && r2 && r3 && r4 && r5 && r6,
     remote: !!supabase,
   }
 }

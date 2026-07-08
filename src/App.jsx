@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { fromIn } from './units.js'
-import { eventTypeLabel, findAsset, findContact, initialsOf, isActive, shortName } from './lib.js'
+import { eventTypeLabel, findAsset, findContact, initialsOf, isActive, leadEvents, shortName } from './lib.js'
 import useStore from './useStore.js'
 import Sidebar from './components/Sidebar.jsx'
 import Dashboard from './components/Dashboard.jsx'
@@ -11,6 +11,7 @@ import LeadDetail from './components/LeadDetail.jsx'
 import Pipeline from './components/Pipeline.jsx'
 import Brokers from './components/Brokers.jsx'
 import Managers from './components/Managers.jsx'
+import Config from './components/Config.jsx'
 import { AssetModal, BrokerModal, BuildingModal, ContactModal, EditAssetModal, EditBrokerModal, EditBuildingModal, EditContactModal, EditManagerModal, LeadModal, ManagerModal } from './components/modals.jsx'
 
 // Dot colors handed out to user-created stages, first unused wins.
@@ -23,6 +24,7 @@ export default function App() {
     managers, setManagers,
     stages, setStages,
     leads, setLeads,
+    eventTypes, setEventTypes,
     ready,
   } = useStore()
 
@@ -223,7 +225,7 @@ export default function App() {
     if (!lead) return
     const ev = { id: `e${Date.now()}`, type: form.type, date: form.date, note: form.note.trim() }
     setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, events: [...(l.events || []), ev] } : l)))
-    showToast(`${eventTypeLabel(ev.type)} logged — ${lead.company}`)
+    showToast(`${eventTypeLabel(ev.type, eventTypes)} logged — ${lead.company}`)
   }
 
   const removeLeadEvent = (id, evId) => {
@@ -241,15 +243,30 @@ export default function App() {
     showToast('Log entry removed')
   }
 
-  const addLeadComment = (id, text) => {
-    const c = { id: `cm${Date.now()}`, text: text.trim(), at: new Date().toISOString() }
-    setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, commentLog: [...(l.commentLog || []), c] } : l)))
-    showToast('Comment added')
+  const addEventType = (label) => {
+    setEventTypes((ts) => [...ts, { id: `et${Date.now()}`, label }])
+    showToast(`Activity type added — ${label}`)
   }
 
-  const removeLeadComment = (id, cid) => {
-    setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, commentLog: (l.commentLog || []).filter((c) => c.id !== cid) } : l)))
-    showToast('Comment removed')
+  const renameEventType = (id, label) => {
+    setEventTypes((ts) => ts.map((t) => (t.id === id ? { ...t, label } : t)))
+    showToast(`Activity type renamed — ${label}`)
+  }
+
+  const removeEventType = (id) => {
+    const t = eventTypes.find((x) => x.id === id)
+    if (!t) return
+    if (eventTypes.length === 1) {
+      showToast('The log needs at least one activity type')
+      return
+    }
+    const n = leads.reduce((acc, l) => acc + leadEvents(l).filter((e) => e.type === id).length, 0)
+    if (n) {
+      showToast(`${n} log ${n === 1 ? 'entry uses' : 'entries use'} “${t.label}” — remove them first`)
+      return
+    }
+    setEventTypes((ts) => ts.filter((x) => x.id !== id))
+    showToast(`Activity type removed — ${t.label}`)
   }
 
   const updateAsset = (form) => {
@@ -496,14 +513,14 @@ export default function App() {
             assets={assets}
             brokers={brokers}
             stages={stages}
+            eventTypes={eventTypes}
             goLeads={() => setView('leads')}
             openAsset={openAsset}
             onEdit={() => setEditLead(detailLead.id)}
             moveLead={moveLead}
             onAddEvent={(form) => addLeadEvent(detailLead.id, form)}
             onRemoveEvent={(evId) => removeLeadEvent(detailLead.id, evId)}
-            onAddComment={(text) => addLeadComment(detailLead.id, text)}
-            onRemoveComment={(cid) => removeLeadComment(detailLead.id, cid)}
+            onToast={showToast}
           />
         )}
         {view === 'pipeline' && (
@@ -531,6 +548,15 @@ export default function App() {
             onAddContact={(brokerId) => setContactModal(brokerId)}
             onEditBroker={(brokerId) => setEditBroker(brokerId)}
             onEditContact={(contactId) => setEditContact(contactId)}
+          />
+        )}
+        {view === 'config' && (
+          <Config
+            eventTypes={eventTypes}
+            leads={leads}
+            onAddType={addEventType}
+            onRenameType={renameEventType}
+            onRemoveType={removeEventType}
           />
         )}
         {view === 'managers' && (

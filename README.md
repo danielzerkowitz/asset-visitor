@@ -25,12 +25,18 @@ The app persists to Supabase when configured, and falls back to localStorage
 when it isn't (so `npm run dev` works with zero setup).
 
 1. Run `supabase/schema.sql` once in the Supabase SQL editor (Dashboard → SQL
-   Editor). It creates the five tables (`assets`, `brokers`, `managers`,
-   `stages`, `leads`) with demo-grade open RLS policies for the anon key.
+   Editor). It creates the six tables (`assets`, `brokers`, `managers`,
+   `stages`, `leads`, `event_types`) with demo-grade open RLS policies for the
+   anon key. The file is idempotent — re-run it after pulling schema changes.
 2. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and
    `VITE_SUPABASE_ANON_KEY` (Dashboard → Project Settings → API).
 3. Set the same two env vars on the Vercel project (they are baked in at build
    time, so redeploy after adding them).
+
+Optional: set `VITE_OPENAI_API_KEY` to transcribe activity-note dictation with
+OpenAI Whisper instead of the browser's built-in speech recognition. The key is
+baked into the client bundle — fine for personal use, put a proxy in front
+before hosting for others.
 
 On first load against an empty database the app seeds it from `src/data.js`.
 Every mutation is then written through (debounced whole-collection upsert +

@@ -24,6 +24,8 @@ export const isActive = (l) => !INACTIVE_STAGES.includes(l.stage)
 
 // Loggable activity on a lead, lawyer-style. Everything the asset manager
 // does with a lead lands here; visits are the type the dashboard reports on.
+// The live list is user-managed (the eventTypes collection, Configuration
+// screen); this one is the seed and the label fallback for old entries.
 export const EVENT_TYPES = [
   { id: 'call', label: 'Phone call' },
   { id: 'visit', label: 'Visit' },
@@ -31,11 +33,16 @@ export const EVENT_TYPES = [
   { id: 'meeting', label: 'Meeting' },
   { id: 'proposal', label: 'Proposal sent' },
   { id: 'followup', label: 'Follow-up' },
+  { id: 'status', label: 'Status update' },
   { id: 'other', label: 'Other' },
 ]
 
-export function eventTypeLabel(type) {
-  return EVENT_TYPES.find((t) => t.id === type)?.label ?? type
+export function eventTypeLabel(type, types) {
+  return (
+    types?.find((t) => t.id === type)?.label
+    ?? EVENT_TYPES.find((t) => t.id === type)?.label
+    ?? type
+  )
 }
 
 // Deal profile vocabularies. Deal types only apply to current tenants —

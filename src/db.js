@@ -38,6 +38,11 @@ export const TABLES = {
     toRow: (s, i) => ({ id: s.id, label: s.label, dot: s.dot, position: i }),
     fromRow: (r) => ({ id: r.id, label: r.label, dot: r.dot }),
   },
+  eventTypes: {
+    table: 'event_types',
+    toRow: (t, i) => ({ id: t.id, label: t.label, position: i }),
+    fromRow: (r) => ({ id: r.id, label: r.label }),
+  },
   leads: {
     table: 'leads',
     toRow: (l, i) => ({

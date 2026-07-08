@@ -6,6 +6,7 @@ export default function Sidebar({ view, counts, onNav, onNewLead }) {
     { id: 'pipeline', label: 'Pipeline', badge: String(counts.active) },
     { id: 'brokers', label: 'Brokers', badge: String(counts.brokers) },
     { id: 'managers', label: 'Asset managers', badge: String(counts.managers) },
+    { id: 'config', label: 'Configuration', badge: '' },
   ]
   return (
     <aside className="sidebar">

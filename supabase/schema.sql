@@ -37,6 +37,16 @@ create table if not exists public.stages (
   position integer not null default 0
 );
 
+-- Activity types offered when logging on a lead — user-managed
+-- (add/rename/delete) from the in-app Configuration screen.
+create table if not exists public.event_types (
+  id       text primary key,
+  label    text not null,
+  position integer not null default 0
+);
+-- Upgrade for databases created when types were toggled rather than managed:
+alter table public.event_types drop column if exists enabled;
+
 create table if not exists public.leads (
   id              text primary key,
   company         text not null,
@@ -86,15 +96,18 @@ alter table public.brokers  enable row level security;
 alter table public.managers enable row level security;
 alter table public.stages   enable row level security;
 alter table public.leads    enable row level security;
+alter table public.event_types enable row level security;
 
 drop policy if exists "atlas open access" on public.assets;
 drop policy if exists "atlas open access" on public.brokers;
 drop policy if exists "atlas open access" on public.managers;
 drop policy if exists "atlas open access" on public.stages;
 drop policy if exists "atlas open access" on public.leads;
+drop policy if exists "atlas open access" on public.event_types;
 
 create policy "atlas open access" on public.assets   for all using (true) with check (true);
 create policy "atlas open access" on public.brokers  for all using (true) with check (true);
 create policy "atlas open access" on public.managers for all using (true) with check (true);
 create policy "atlas open access" on public.stages   for all using (true) with check (true);
 create policy "atlas open access" on public.leads    for all using (true) with check (true);
+create policy "atlas open access" on public.event_types for all using (true) with check (true);

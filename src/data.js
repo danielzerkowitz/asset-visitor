@@ -1,3 +1,9 @@
+import { EVENT_TYPES } from './lib.js'
+
+// The activity types offered when logging — user-managed (add/rename/delete)
+// from the Configuration screen; this is just the starting set.
+export const eventTypesSeed = EVENT_TYPES.map((t) => ({ ...t }))
+
 export const assetsSeed = [
   { id: 'meridian', name: 'Meridian Business Park', short: 'Meridian', type: 'Office', loc: 'Zaventem, BE', manager: 'LV', subs: [
     { id: 'a', name: 'Building A', short: 'Bldg A', sqm: 4200, occ: 0.92, units: 12, vacant: 1, rent: 165 },
