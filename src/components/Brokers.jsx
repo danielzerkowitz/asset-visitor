@@ -1,7 +1,7 @@
 import { Avatar } from './ui.jsx'
 import { isActive, visitCount } from '../lib.js'
 
-export default function Brokers({ brokers, assets, leads, onAddBroker, onAddContact }) {
+export default function Brokers({ brokers, assets, leads, onAddBroker, onAddContact, onEditBroker, onEditContact }) {
   const statsFor = (contactId) => {
     const mine = leads.filter((l) => l.brokerContact === contactId)
     return {
@@ -38,9 +38,14 @@ export default function Brokers({ brokers, assets, leads, onAddBroker, onAddCont
                   </span>
                 )}
               </div>
-              <button className="btn-secondary btn-secondary--sm" onClick={() => onAddContact(b.id)}>
-                <span className="plus">+</span>Add contact
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-secondary btn-secondary--sm" onClick={() => onEditBroker(b.id)}>
+                  Edit
+                </button>
+                <button className="btn-secondary btn-secondary--sm" onClick={() => onAddContact(b.id)}>
+                  <span className="plus">+</span>Add contact
+                </button>
+              </div>
             </div>
             <div className="grid-row agent-cols thead-row">
               <span className="mlabel">CONTACT</span>
@@ -51,7 +56,12 @@ export default function Brokers({ brokers, assets, leads, onAddBroker, onAddCont
             {b.contacts.map((c) => {
               const s = statsFor(c.id)
               return (
-                <div key={c.id} className="grid-row agent-cols people-row">
+                <div
+                  key={c.id}
+                  className="grid-row agent-cols people-row people-row--click"
+                  title="Click to edit"
+                  onClick={() => onEditContact(c.id)}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
                     <Avatar size={30} fontSize={10}>{c.init}</Avatar>
                     <span style={{ fontSize: 13.5, fontWeight: 600 }}>{c.name}</span>

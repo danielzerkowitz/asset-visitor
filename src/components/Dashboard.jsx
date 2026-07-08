@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { area, cv, fmt, unit } from '../units.js'
-import { buildingCount, findAsset, fmtDate, isActive, lastVisit, leadInScope, visitCount, whereLabel } from '../lib.js'
+import { buildingCount, findAsset, fmtDate, isActive, leadInScope, visitDates, visitsBetween, whereLabel } from '../lib.js'
 import { KpiCard, Select } from './ui.jsx'
 
 function todayLabel() {
@@ -10,8 +11,23 @@ function todayLabel() {
 
 const demandOf = (ls) => ls.reduce((n, l) => n + (l.sqm || 0), 0)
 
+// Timespan the visit numbers report on (KPI, table column, recent list).
+const PERIODS = [
+  { id: 'all', label: 'All time', days: null },
+  { id: '7', label: 'Last 7 days', days: 7 },
+  { id: '30', label: 'Last 30 days', days: 30 },
+  { id: '90', label: 'Last 90 days', days: 90 },
+  { id: '365', label: 'Last 12 months', days: 365 },
+]
+
 export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setFSub, openAsset }) {
+  const [period, setPeriod] = useState('all')
   const selAsset = fAsset !== 'all' ? findAsset(assets, fAsset) : null
+
+  const periodDef = PERIODS.find((p) => p.id === period)
+  const cutoff = periodDef.days ? new Date(Date.now() - periodDef.days * 86400000).toISOString().slice(0, 10) : null
+  // Upper bound: imported data holds visits scheduled ahead — those aren't "done".
+  const todayIso = new Date().toISOString().slice(0, 10)
 
   const assetOptions = [{ id: 'all', label: 'All assets' }, ...assets.map((a) => ({ id: a.id, label: a.name }))]
   const multiSubs = selAsset ? selAsset.subs.filter((s) => !s.single) : []
@@ -24,13 +40,15 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
 
   const leadsScoped = leads.filter((l) => leadInScope(l, fAsset, fSub))
   const activeScoped = leadsScoped.filter(isActive)
-  const visitsDone = activeScoped.reduce((n, l) => n + visitCount(l), 0)
+  // Visits are counted over all leads in scope (incl. signed/out) — activity
+  // happened regardless of where the deal ended up.
+  const visitsDone = leadsScoped.reduce((n, l) => n + visitsBetween(l, cutoff, todayIso), 0)
   const proposals = activeScoped.filter((l) => l.stage === 'proposal' || l.stage === 'agreed').length
 
   const kpis = [
     { label: 'ACTIVE LEADS', value: String(activeScoped.length), unit: '', note: 'excluding signed & out' },
     { label: 'DEMAND', value: fmt(cv(demandOf(activeScoped))), unit: unit(), note: 'sqm active leads are seeking' },
-    { label: 'VISITS DONE', value: String(visitsDone), unit: '', note: 'across active leads' },
+    { label: 'VISITS DONE', value: String(visitsDone), unit: '', note: periodDef.label.toLowerCase() },
     { label: 'PROPOSALS OUT', value: String(proposals), unit: '', note: 'incl. agreed' },
   ]
 
@@ -40,14 +58,15 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
     tableTitle = 'Leads by asset'
     colLabel = 'ASSET'
     rows = assets.map((a) => {
-      const mine = leads.filter((l) => l.assetId === a.id && isActive(l))
+      const all = leads.filter((l) => l.assetId === a.id)
+      const mine = all.filter(isActive)
       return {
         id: a.id,
         name: a.name,
         meta: `${a.type} · ${buildingCount(a).toLowerCase()}`,
         active: mine.length,
         demand: demandOf(mine),
-        visits: mine.reduce((n, l) => n + visitCount(l), 0),
+        visits: all.reduce((n, l) => n + visitsBetween(l, cutoff, todayIso), 0),
         open: () => openAsset(a.id),
       }
     })
@@ -57,34 +76,41 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
     const bRows = selAsset.subs
       .filter((s) => fSub === 'all' || s.id === fSub)
       .map((s) => {
-        const mine = leads.filter((l) => l.assetId === selAsset.id && l.subId === s.id && isActive(l))
-        return { id: s.id, name: s.name, meta: null, mine }
+        const all = leads.filter((l) => l.assetId === selAsset.id && l.subId === s.id)
+        return { id: s.id, name: s.name, meta: null, all }
       })
-    const loose = leads.filter((l) => l.assetId === selAsset.id && !l.subId && isActive(l))
+    const loose = leads.filter((l) => l.assetId === selAsset.id && !l.subId)
     if (fSub === 'all' && loose.length) {
-      bRows.push({ id: '__whole', name: 'Whole asset', meta: 'no building assigned', mine: loose })
+      bRows.push({ id: '__whole', name: 'Whole asset', meta: 'no building assigned', all: loose })
     }
-    rows = bRows.map((r) => ({
-      id: r.id,
-      name: r.name,
-      meta: r.meta,
-      active: r.mine.length,
-      demand: demandOf(r.mine),
-      visits: r.mine.reduce((n, l) => n + visitCount(l), 0),
-      open: () => openAsset(selAsset.id),
-    }))
+    rows = bRows.map((r) => {
+      const mine = r.all.filter(isActive)
+      return {
+        id: r.id,
+        name: r.name,
+        meta: r.meta,
+        active: mine.length,
+        demand: demandOf(mine),
+        visits: r.all.reduce((n, l) => n + visitsBetween(l, cutoff, todayIso), 0),
+        open: () => openAsset(selAsset.id),
+      }
+    })
   }
   const maxDemand = Math.max(1, ...rows.map((r) => r.demand))
 
-  const visits = activeScoped
-    .filter((l) => lastVisit(l))
-    .sort((a, b) => (lastVisit(b) > lastVisit(a) ? 1 : -1))
+  const visits = leadsScoped
+    .map((l) => {
+      const dates = visitDates(l).filter((d) => (!cutoff || d >= cutoff) && d <= todayIso)
+      return { l, last: dates.length ? dates[dates.length - 1] : null }
+    })
+    .filter((x) => x.last)
+    .sort((a, b) => (b.last > a.last ? 1 : -1))
     .slice(0, 6)
-    .map((l) => ({
+    .map(({ l, last }) => ({
       id: l.id,
       company: l.company,
       where: whereLabel(assets, l),
-      when: l.when || fmtDate(lastVisit(l)),
+      when: fmtDate(last),
     }))
 
   const tableCols = 'minmax(170px,1.2fr) 80px 1fr 110px 90px'
@@ -119,6 +145,14 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
               Clear
             </button>
           )}
+          <span className="mlabel" style={{ marginLeft: 10 }}>VISITS</span>
+          <Select
+            bar
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            options={PERIODS}
+            style={{ maxWidth: 150 }}
+          />
         </div>
       </div>
 

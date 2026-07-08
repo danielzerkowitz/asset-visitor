@@ -1,15 +1,17 @@
 import { useRef, useState } from 'react'
 import { fromIn } from './units.js'
-import { findAsset, initialsOf, isActive, shortName } from './lib.js'
+import { eventTypeLabel, findAsset, findContact, initialsOf, isActive, shortName } from './lib.js'
 import useStore from './useStore.js'
 import Sidebar from './components/Sidebar.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import Assets from './components/Assets.jsx'
 import AssetDetail from './components/AssetDetail.jsx'
+import Leads from './components/Leads.jsx'
+import LeadDetail from './components/LeadDetail.jsx'
 import Pipeline from './components/Pipeline.jsx'
 import Brokers from './components/Brokers.jsx'
 import Managers from './components/Managers.jsx'
-import { AssetModal, BrokerModal, BuildingModal, ContactModal, EditAssetModal, EditBuildingModal, LeadModal, ManagerModal } from './components/modals.jsx'
+import { AssetModal, BrokerModal, BuildingModal, ContactModal, EditAssetModal, EditBrokerModal, EditBuildingModal, EditContactModal, EditManagerModal, LeadModal, ManagerModal } from './components/modals.jsx'
 
 // Dot colors handed out to user-created stages, first unused wins.
 const STAGE_DOTS = ['#948A7B', '#B08327', '#C05F2E', '#9D4A26', '#74803B', '#4C8355', '#3F7A6E', '#9A7B2E', '#6E7A3D', '#A85A32']
@@ -26,6 +28,7 @@ export default function App() {
 
   const [view, setView] = useState('dashboard')
   const [assetId, setAssetId] = useState(null)
+  const [leadId, setLeadId] = useState(null)
 
   const [fAsset, setFAsset] = useState('all')
   const [fSub, setFSub] = useState('all')
@@ -41,9 +44,15 @@ export default function App() {
   // null = closed; otherwise the id of the lead being edited
   const [editLead, setEditLead] = useState(null)
   const [brokerModal, setBrokerModal] = useState(false)
+  // null = closed; otherwise the id of the broker being edited
+  const [editBroker, setEditBroker] = useState(null)
   // null = closed; otherwise the id of the broker the new contact belongs to
   const [contactModal, setContactModal] = useState(null)
+  // null = closed; otherwise the id of the contact being edited
+  const [editContact, setEditContact] = useState(null)
   const [managerModal, setManagerModal] = useState(false)
+  // null = closed; otherwise the id of the manager being edited
+  const [editManager, setEditManager] = useState(null)
 
   const [toast, setToast] = useState('')
   const toastTimer = useRef(null)
@@ -55,6 +64,13 @@ export default function App() {
 
   const openAsset = (id) => { setAssetId(id); setView('detail') }
   const detailAsset = view === 'detail' && assetId ? findAsset(assets, assetId) : null
+  const editBrokerObj = editBroker ? brokers.find((b) => b.id === editBroker) : null
+  // findContact attaches the owning broker as `.broker`
+  const editContactObj = editContact ? findContact(brokers, editContact) : null
+  const editManagerObj = editManager ? managers.find((m) => m.id === editManager) : null
+
+  const openLead = (id) => { setLeadId(id); setView('lead') }
+  const detailLead = view === 'lead' && leadId ? leads.find((l) => l.id === leadId) : null
 
   const moveLead = (id, stageId) => {
     const lead = leads.find((l) => l.id === id)
@@ -103,13 +119,16 @@ export default function App() {
       stage: first.id,
       broker: firm?.id ?? null,
       brokerContact: form.brokerContact,
+      tenantKind: form.tenantKind,
+      dealType: form.dealType || null,
+      activity: form.activity.trim() || null,
+      timing: form.timing.trim() || null,
       visits: [],
       next: 'First call to book',
     }
     setLeads((ls) => [lead, ...ls])
     setLeadModal(null)
-    setView('pipeline')
-    setPAsset('all')
+    openLead(lead.id)
     showToast(`Lead added — ${lead.company} in ${first.label}`)
   }
 
@@ -175,6 +194,13 @@ export default function App() {
               subId: form.sub || null,
               broker: firm?.id ?? null,
               brokerContact: form.brokerContact || null,
+              tenantKind: form.tenantKind,
+              dealType: form.dealType || null,
+              activity: form.activity.trim() || null,
+              timing: form.timing.trim() || null,
+              intro: form.intro || null,
+              lastProposal: form.lastProposal || null,
+              proposalAgreed: form.proposalAgreed || null,
               next: form.next.trim(),
             }
       )
@@ -188,7 +214,42 @@ export default function App() {
     if (!lead) return
     setLeads((ls) => ls.filter((l) => l.id !== id))
     setEditLead(null)
+    if (view === 'lead') setView('leads')
     showToast(`Lead deleted — ${lead.company}`)
+  }
+
+  const addLeadEvent = (id, form) => {
+    const lead = leads.find((l) => l.id === id)
+    if (!lead) return
+    const ev = { id: `e${Date.now()}`, type: form.type, date: form.date, note: form.note.trim() }
+    setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, events: [...(l.events || []), ev] } : l)))
+    showToast(`${eventTypeLabel(ev.type)} logged — ${lead.company}`)
+  }
+
+  const removeLeadEvent = (id, evId) => {
+    setLeads((ls) =>
+      ls.map((l) => {
+        if (l.id !== id) return l
+        // legacy entries live in the imported `visits` date array, keyed by index
+        if (evId.startsWith('legacy-')) {
+          const idx = Number(evId.slice('legacy-'.length))
+          return { ...l, visits: (l.visits || []).filter((_, i) => i !== idx) }
+        }
+        return { ...l, events: (l.events || []).filter((e) => e.id !== evId) }
+      })
+    )
+    showToast('Log entry removed')
+  }
+
+  const addLeadComment = (id, text) => {
+    const c = { id: `cm${Date.now()}`, text: text.trim(), at: new Date().toISOString() }
+    setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, commentLog: [...(l.commentLog || []), c] } : l)))
+    showToast('Comment added')
+  }
+
+  const removeLeadComment = (id, cid) => {
+    setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, commentLog: (l.commentLog || []).filter((c) => c.id !== cid) } : l)))
+    showToast('Comment removed')
   }
 
   const updateAsset = (form) => {
@@ -204,7 +265,7 @@ export default function App() {
               short: shortName(name),
               loc: form.loc.trim() || '—',
               type: form.type,
-              manager: form.manager,
+              manager: form.manager || null,
               tenantRep: form.tenantRep || null,
             }
       )
@@ -265,6 +326,30 @@ export default function App() {
     showToast(`Broker added — ${name}`)
   }
 
+  const renameBroker = (name) => {
+    setBrokers((bs) => bs.map((b) => (b.id === editBroker ? { ...b, name } : b)))
+    setEditBroker(null)
+    showToast(`Broker renamed — ${name}`)
+  }
+
+  const deleteBroker = () => {
+    const broker = brokers.find((b) => b.id === editBroker)
+    if (!broker) return
+    const contactIds = broker.contacts.map((c) => c.id)
+    const linked = (l) => l.broker === broker.id || contactIds.includes(l.brokerContact)
+    const unlinked = leads.filter(linked).length
+    setBrokers((bs) => bs.filter((b) => b.id !== broker.id))
+    if (unlinked) {
+      // its leads keep running, just without a broker attached
+      setLeads((ls) => ls.map((l) => (linked(l) ? { ...l, broker: null, brokerContact: null } : l)))
+    }
+    if (assets.some((a) => a.tenantRep === broker.id)) {
+      setAssets((as) => as.map((a) => (a.tenantRep === broker.id ? { ...a, tenantRep: null } : a)))
+    }
+    setEditBroker(null)
+    showToast(`Broker deleted — ${broker.name}${unlinked ? ` (${unlinked} ${unlinked === 1 ? 'lead' : 'leads'} → no broker)` : ''}`)
+  }
+
   const submitContact = (form) => {
     const broker = brokers.find((b) => b.id === contactModal)
     if (!broker) return
@@ -273,6 +358,70 @@ export default function App() {
     setBrokers((bs) => bs.map((b) => (b.id === broker.id ? { ...b, contacts: [...b.contacts, contact] } : b)))
     setContactModal(null)
     showToast(`Contact added — ${name} (${broker.name})`)
+  }
+
+  const updateContact = (form) => {
+    if (!editContactObj) return
+    const from = editContactObj.broker
+    const raw = from.contacts.find((c) => c.id === editContactObj.id)
+    if (!raw) return
+    const name = form.name.trim()
+    const next = { ...raw, name, init: initialsOf(name) }
+    const moved = form.broker !== from.id
+    setBrokers((bs) =>
+      bs.map((b) => {
+        if (!moved) return b.id === from.id ? { ...b, contacts: b.contacts.map((c) => (c.id === next.id ? next : c)) } : b
+        if (b.id === from.id) return { ...b, contacts: b.contacts.filter((c) => c.id !== next.id) }
+        if (b.id === form.broker) return { ...b, contacts: [...b.contacts, next] }
+        return b
+      })
+    )
+    if (moved) {
+      // the contact's leads follow them to the new brokerage
+      setLeads((ls) => ls.map((l) => (l.brokerContact === next.id ? { ...l, broker: form.broker } : l)))
+    }
+    setEditContact(null)
+    const to = brokers.find((b) => b.id === form.broker)
+    showToast(moved ? `Contact updated — ${name} moved to ${to?.name ?? 'new brokerage'}` : `Contact updated — ${name}`)
+  }
+
+  const deleteContact = () => {
+    if (!editContactObj) return
+    const from = editContactObj.broker
+    const n = leads.filter((l) => l.brokerContact === editContactObj.id).length
+    setBrokers((bs) =>
+      bs.map((b) => (b.id === from.id ? { ...b, contacts: b.contacts.filter((c) => c.id !== editContactObj.id) } : b))
+    )
+    if (n) {
+      // leads stay with the brokerage, just without a contact person
+      setLeads((ls) => ls.map((l) => (l.brokerContact === editContactObj.id ? { ...l, brokerContact: null } : l)))
+    }
+    setEditContact(null)
+    showToast(`Contact deleted — ${editContactObj.name}${n ? ` (${n} ${n === 1 ? 'lead' : 'leads'} → no contact)` : ''}`)
+  }
+
+  const updateManager = (form) => {
+    if (!editManagerObj) return
+    setManagers((ms) => ms.map((m) => (m.id === editManagerObj.id ? { ...m, name: form.name, init: initialsOf(form.name) } : m)))
+    setAssets((as) =>
+      as.map((a) => {
+        if (form.assetIds.includes(a.id)) return a.manager === editManagerObj.id ? a : { ...a, manager: editManagerObj.id }
+        return a.manager === editManagerObj.id ? { ...a, manager: null } : a
+      })
+    )
+    setEditManager(null)
+    showToast(`Manager updated — ${form.name}`)
+  }
+
+  const deleteManager = () => {
+    if (!editManagerObj) return
+    const n = assets.filter((a) => a.manager === editManagerObj.id).length
+    setManagers((ms) => ms.filter((m) => m.id !== editManagerObj.id))
+    if (n) {
+      setAssets((as) => as.map((a) => (a.manager === editManagerObj.id ? { ...a, manager: null } : a)))
+    }
+    setEditManager(null)
+    showToast(`Manager deleted — ${editManagerObj.name}${n ? ` (${n} ${n === 1 ? 'asset' : 'assets'} unassigned)` : ''}`)
   }
 
   const submitManager = (form) => {
@@ -292,6 +441,7 @@ export default function App() {
 
   const counts = {
     assets: assets.length,
+    leads: leads.length,
     active: leads.filter(isActive).length,
     brokers: brokers.length,
     managers: managers.length,
@@ -327,7 +477,33 @@ export default function App() {
             onAddBuilding={() => setBuildingModal(true)}
             onEditBuilding={(subId) => setEditBuilding(subId)}
             onEditAsset={() => setEditAsset(true)}
-            onEditLead={(id) => setEditLead(id)}
+            onOpenLead={openLead}
+          />
+        )}
+        {view === 'leads' && (
+          <Leads
+            assets={assets}
+            leads={leads}
+            brokers={brokers}
+            stages={stages}
+            openLead={openLead}
+            onNewLead={() => setLeadModal('')}
+          />
+        )}
+        {detailLead && (
+          <LeadDetail
+            lead={detailLead}
+            assets={assets}
+            brokers={brokers}
+            stages={stages}
+            goLeads={() => setView('leads')}
+            openAsset={openAsset}
+            onEdit={() => setEditLead(detailLead.id)}
+            moveLead={moveLead}
+            onAddEvent={(form) => addLeadEvent(detailLead.id, form)}
+            onRemoveEvent={(evId) => removeLeadEvent(detailLead.id, evId)}
+            onAddComment={(text) => addLeadComment(detailLead.id, text)}
+            onRemoveComment={(cid) => removeLeadComment(detailLead.id, cid)}
           />
         )}
         {view === 'pipeline' && (
@@ -340,7 +516,7 @@ export default function App() {
             setPAsset={setPAsset}
             openAsset={openAsset}
             moveLead={moveLead}
-            onEditLead={(id) => setEditLead(id)}
+            onOpenLead={openLead}
             onAddStage={addStage}
             onRenameStage={renameStage}
             onRemoveStage={removeStage}
@@ -353,10 +529,18 @@ export default function App() {
             leads={leads}
             onAddBroker={() => setBrokerModal(true)}
             onAddContact={(brokerId) => setContactModal(brokerId)}
+            onEditBroker={(brokerId) => setEditBroker(brokerId)}
+            onEditContact={(contactId) => setEditContact(contactId)}
           />
         )}
         {view === 'managers' && (
-          <Managers managers={managers} assets={assets} leads={leads} onAdd={() => setManagerModal(true)} />
+          <Managers
+            managers={managers}
+            assets={assets}
+            leads={leads}
+            onAdd={() => setManagerModal(true)}
+            onEdit={(managerId) => setEditManager(managerId)}
+          />
         )}
       </main>
 
@@ -407,6 +591,15 @@ export default function App() {
         />
       )}
       {brokerModal && <BrokerModal onClose={() => setBrokerModal(false)} onSubmit={submitBroker} />}
+      {editBrokerObj && (
+        <EditBrokerModal
+          broker={editBrokerObj}
+          leadCount={leads.filter((l) => l.broker === editBrokerObj.id || editBrokerObj.contacts.some((c) => c.id === l.brokerContact)).length}
+          onClose={() => setEditBroker(null)}
+          onRename={renameBroker}
+          onDelete={deleteBroker}
+        />
+      )}
       {contactModal !== null && (
         <ContactModal
           brokerName={brokers.find((b) => b.id === contactModal)?.name ?? ''}
@@ -414,7 +607,27 @@ export default function App() {
           onSubmit={submitContact}
         />
       )}
+      {editContactObj && (
+        <EditContactModal
+          contact={editContactObj}
+          brokers={brokers}
+          leadCount={leads.filter((l) => l.brokerContact === editContactObj.id).length}
+          onClose={() => setEditContact(null)}
+          onSubmit={updateContact}
+          onDelete={deleteContact}
+        />
+      )}
       {managerModal && <ManagerModal onClose={() => setManagerModal(false)} onSubmit={submitManager} />}
+      {editManagerObj && (
+        <EditManagerModal
+          manager={editManagerObj}
+          managers={managers}
+          assets={assets}
+          onClose={() => setEditManager(null)}
+          onSubmit={updateManager}
+          onDelete={deleteManager}
+        />
+      )}
 
       {toast && <div className="toast">{toast}</div>}
     </div>

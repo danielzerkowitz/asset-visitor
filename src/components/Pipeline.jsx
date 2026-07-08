@@ -3,7 +3,7 @@ import { area } from '../units.js'
 import { contactInit, isActive, whereLabel } from '../lib.js'
 import { Avatar, Select } from './ui.jsx'
 
-export default function Pipeline({ assets, leads, brokers, stages, pAsset, setPAsset, openAsset, moveLead, onEditLead, onAddStage, onRenameStage, onRemoveStage }) {
+export default function Pipeline({ assets, leads, brokers, stages, pAsset, setPAsset, openAsset, moveLead, onOpenLead, onAddStage, onRenameStage, onRemoveStage }) {
   const [hoverCol, setHoverCol] = useState(null)
   const [adding, setAdding] = useState(false)
   const [newLabel, setNewLabel] = useState('')
@@ -107,9 +107,9 @@ export default function Pipeline({ assets, leads, brokers, stages, pAsset, setPA
                 <div
                   key={l.id}
                   className="pcard"
-                  title="Drag to move · click to edit"
+                  title="Drag to move · click to open"
                   draggable
-                  onClick={() => onEditLead(l.id)}
+                  onClick={() => onOpenLead(l.id)}
                   onDragStart={(e) => {
                     dragId.current = l.id
                     e.dataTransfer.effectAllowed = 'move'

@@ -53,10 +53,12 @@ create table if not exists public.leads (
   activity        text,                          -- tenant sector (Nacebel)
   timing          text,
   intro_date      text,                          -- milestone dates, 'YYYY-MM-DD'
-  visits          jsonb not null default '[]'::jsonb,
+  visits          jsonb not null default '[]'::jsonb,  -- legacy imported visit dates
+  events          jsonb not null default '[]'::jsonb,  -- activity log: {id, type, date, note}
+  comment_log     jsonb not null default '[]'::jsonb,  -- comments: {id, text, at}
   last_proposal   text,
   proposal_agreed text,
-  comments        text,
+  comments        text,                          -- legacy imported free-text note
   next_step       text not null default '',
   when_label      text,
   position        integer not null default 0
@@ -72,6 +74,8 @@ alter table public.leads add column if not exists visits jsonb not null default 
 alter table public.leads add column if not exists last_proposal text;
 alter table public.leads add column if not exists proposal_agreed text;
 alter table public.leads add column if not exists comments text;
+alter table public.leads add column if not exists events jsonb not null default '[]'::jsonb;
+alter table public.leads add column if not exists comment_log jsonb not null default '[]'::jsonb;
 alter table public.leads alter column broker_contact drop not null;
 
 -- Demo-grade access: the app talks to the DB directly with the public anon

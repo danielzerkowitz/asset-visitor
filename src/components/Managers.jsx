@@ -1,6 +1,6 @@
 import { isActive } from '../lib.js'
 
-export default function Managers({ managers, assets, leads, onAdd }) {
+export default function Managers({ managers, assets, leads, onAdd, onEdit }) {
   return (
     <div className="page page--narrow">
       <div className="page-head">
@@ -23,7 +23,12 @@ export default function Managers({ managers, assets, leads, onAdd }) {
           const ownedIds = assets.filter((a) => a.manager === m.id).map((a) => a.id)
           const active = leads.filter((l) => ownedIds.includes(l.assetId) && isActive(l)).length
           return (
-            <div key={m.id} className="grid-row mgr-cols people-row">
+            <div
+              key={m.id}
+              className="grid-row mgr-cols people-row people-row--click"
+              title="Click to edit"
+              onClick={() => onEdit(m.id)}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
                 <span
                   style={{

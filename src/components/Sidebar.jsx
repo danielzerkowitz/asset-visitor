@@ -2,6 +2,7 @@ export default function Sidebar({ view, counts, onNav, onNewLead }) {
   const items = [
     { id: 'dashboard', label: 'Dashboard', badge: '' },
     { id: 'assets', label: 'Assets', badge: String(counts.assets) },
+    { id: 'leads', label: 'Leads', badge: String(counts.leads) },
     { id: 'pipeline', label: 'Pipeline', badge: String(counts.active) },
     { id: 'brokers', label: 'Brokers', badge: String(counts.brokers) },
     { id: 'managers', label: 'Asset managers', badge: String(counts.managers) },
@@ -20,7 +21,7 @@ export default function Sidebar({ view, counts, onNav, onNewLead }) {
       </button>
       <nav className="nav">
         {items.map((n) => {
-          const active = view === n.id || (n.id === 'assets' && view === 'detail')
+          const active = view === n.id || (n.id === 'assets' && view === 'detail') || (n.id === 'leads' && view === 'lead')
           return (
             <button
               key={n.id}

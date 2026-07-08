@@ -2,7 +2,7 @@ import { area, cv, fmt, unit } from '../units.js'
 import { brokerName, buildingCount, contactInit, isActive, managerName, visitCount } from '../lib.js'
 import { Avatar, KpiCard } from './ui.jsx'
 
-export default function AssetDetail({ asset, leads, brokers, managers, stages, goAssets, onAddLead, onAddBuilding, onEditBuilding, onEditAsset, onEditLead }) {
+export default function AssetDetail({ asset, leads, brokers, managers, stages, goAssets, onAddLead, onAddBuilding, onEditBuilding, onEditAsset, onOpenLead }) {
   const aLeads = leads.filter((l) => l.assetId === asset.id)
   const active = aLeads.filter(isActive)
   const demand = active.reduce((n, l) => n + (l.sqm || 0), 0)
@@ -100,8 +100,8 @@ export default function AssetDetail({ asset, leads, brokers, managers, stages, g
             <div
               key={l.id}
               className="grid-row dlead-cols dlead-row dlead-row--click"
-              title="Click to edit"
-              onClick={() => onEditLead(l.id)}
+              title="Click to open"
+              onClick={() => onOpenLead(l.id)}
             >
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{l.company}</div>
