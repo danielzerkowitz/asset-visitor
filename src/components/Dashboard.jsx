@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { area, cv, fmt, unit } from '../units.js'
 import { buildingCount, findAsset, fmtDate, isActive, leadInScope, visitDates, visitsBetween, whereLabel } from '../lib.js'
 import { KpiCard, Select } from './ui.jsx'
@@ -11,7 +11,7 @@ function todayLabel() {
 
 const demandOf = (ls) => ls.reduce((n, l) => n + (l.sqm || 0), 0)
 
-// Timespan the visit numbers report on (KPI, table column, recent list).
+// Preset timespans the visit numbers report on (KPI, table column, recent list).
 const PERIODS = [
   { id: 'all', label: 'All time', days: null },
   { id: '7', label: 'Last 7 days', days: 7 },
@@ -20,14 +20,95 @@ const PERIODS = [
   { id: '365', label: 'Last 12 months', days: 365 },
 ]
 
+function rangeLabel(range) {
+  if (range.preset !== 'custom') return PERIODS.find((p) => p.id === range.preset).label
+  if (range.from && range.to) return `${fmtDate(range.from)} – ${fmtDate(range.to)}`
+  if (range.from) return `Since ${fmtDate(range.from)}`
+  if (range.to) return `Until ${fmtDate(range.to)}`
+  return 'Custom range'
+}
+
+function VisitRangePicker({ range, setRange, todayIso }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false) }
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const custom = range.preset === 'custom'
+  return (
+    <div className="rangewrap" ref={wrapRef}>
+      <button className="range-btn" onClick={() => setOpen((o) => !o)}>
+        <span>{rangeLabel(range)}</span>
+        <span className="range-arrow">▼</span>
+      </button>
+      {open && (
+        <div className="rangepop">
+          {PERIODS.map((p) => (
+            <button
+              key={p.id}
+              className={`rangepop-item${range.preset === p.id ? ' active' : ''}`}
+              onClick={() => { setRange({ preset: p.id, from: '', to: '' }); setOpen(false) }}
+            >
+              <span>{p.label}</span>
+              {range.preset === p.id && <span>✓</span>}
+            </button>
+          ))}
+          <div className="rangepop-sep" />
+          <div className="rangepop-custom">
+            <div className="flabel">CUSTOM RANGE</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div>
+                <div className="flabel">FROM</div>
+                <input
+                  type="date"
+                  className="field field--date"
+                  value={custom ? range.from : ''}
+                  max={(custom && range.to) || todayIso}
+                  onChange={(e) => setRange({ preset: 'custom', from: e.target.value, to: custom ? range.to : '' })}
+                />
+              </div>
+              <div>
+                <div className="flabel">TO</div>
+                <input
+                  type="date"
+                  className="field field--date"
+                  value={custom ? range.to : ''}
+                  min={custom && range.from ? range.from : undefined}
+                  max={todayIso}
+                  onChange={(e) => setRange({ preset: 'custom', from: custom ? range.from : '', to: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setFSub, openAsset }) {
-  const [period, setPeriod] = useState('all')
+  const [range, setRange] = useState({ preset: 'all', from: '', to: '' })
   const selAsset = fAsset !== 'all' ? findAsset(assets, fAsset) : null
 
-  const periodDef = PERIODS.find((p) => p.id === period)
-  const cutoff = periodDef.days ? new Date(Date.now() - periodDef.days * 86400000).toISOString().slice(0, 10) : null
   // Upper bound: imported data holds visits scheduled ahead — those aren't "done".
   const todayIso = new Date().toISOString().slice(0, 10)
+  const preset = PERIODS.find((p) => p.id === range.preset)
+  const cutoff = range.preset === 'custom'
+    ? range.from || null
+    : preset.days
+      ? new Date(Date.now() - preset.days * 86400000).toISOString().slice(0, 10)
+      : null
+  const until = range.preset === 'custom' && range.to && range.to < todayIso ? range.to : todayIso
 
   const assetOptions = [{ id: 'all', label: 'All assets' }, ...assets.map((a) => ({ id: a.id, label: a.name }))]
   const multiSubs = selAsset ? selAsset.subs.filter((s) => !s.single) : []
@@ -42,13 +123,13 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
   const activeScoped = leadsScoped.filter(isActive)
   // Visits are counted over all leads in scope (incl. signed/out) — activity
   // happened regardless of where the deal ended up.
-  const visitsDone = leadsScoped.reduce((n, l) => n + visitsBetween(l, cutoff, todayIso), 0)
+  const visitsDone = leadsScoped.reduce((n, l) => n + visitsBetween(l, cutoff, until), 0)
   const proposals = activeScoped.filter((l) => l.stage === 'proposal' || l.stage === 'agreed').length
 
   const kpis = [
     { label: 'ACTIVE LEADS', value: String(activeScoped.length), unit: '', note: 'excluding signed & out' },
     { label: 'DEMAND', value: fmt(cv(demandOf(activeScoped))), unit: unit(), note: 'sqm active leads are seeking' },
-    { label: 'VISITS DONE', value: String(visitsDone), unit: '', note: periodDef.label.toLowerCase() },
+    { label: 'VISITS DONE', value: String(visitsDone), unit: '', note: range.preset === 'custom' ? rangeLabel(range) : preset.label.toLowerCase() },
     { label: 'PROPOSALS OUT', value: String(proposals), unit: '', note: 'incl. agreed' },
   ]
 
@@ -66,7 +147,7 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
         meta: `${a.type} · ${buildingCount(a).toLowerCase()}`,
         active: mine.length,
         demand: demandOf(mine),
-        visits: all.reduce((n, l) => n + visitsBetween(l, cutoff, todayIso), 0),
+        visits: all.reduce((n, l) => n + visitsBetween(l, cutoff, until), 0),
         open: () => openAsset(a.id),
       }
     })
@@ -91,7 +172,7 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
         meta: r.meta,
         active: mine.length,
         demand: demandOf(mine),
-        visits: r.all.reduce((n, l) => n + visitsBetween(l, cutoff, todayIso), 0),
+        visits: r.all.reduce((n, l) => n + visitsBetween(l, cutoff, until), 0),
         open: () => openAsset(selAsset.id),
       }
     })
@@ -100,7 +181,7 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
 
   const visits = leadsScoped
     .map((l) => {
-      const dates = visitDates(l).filter((d) => (!cutoff || d >= cutoff) && d <= todayIso)
+      const dates = visitDates(l).filter((d) => (!cutoff || d >= cutoff) && d <= until)
       return { l, last: dates.length ? dates[dates.length - 1] : null }
     })
     .filter((x) => x.last)
@@ -146,13 +227,7 @@ export default function Dashboard({ assets, leads, fAsset, fSub, setFAsset, setF
             </button>
           )}
           <span className="mlabel" style={{ marginLeft: 10 }}>VISITS</span>
-          <Select
-            bar
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            options={PERIODS}
-            style={{ maxWidth: 150 }}
-          />
+          <VisitRangePicker range={range} setRange={setRange} todayIso={todayIso} />
         </div>
       </div>
 
